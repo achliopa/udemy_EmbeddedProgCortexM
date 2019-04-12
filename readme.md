@@ -83,5 +83,56 @@
 * check mem size of microcontroller and ram 
 * use >100KB SRAM
 * plan on future. stick witha ref design and master the MCU
+
+### Lecture 9 - STM32F4 Discovery and Nucleo: Board Details
+
 * if using discovery board use the newest one DIC1
 * MCU does not use the external clock unless we tell it to
+* Nucleo board is more streamlined (less feats)
+	* no external crystal
+	* arduino hat compatible
+	* nucleo boards have stm32 nucleo support
+	* when we connect it to pc it is enumerated as a virtual com port
+* to enable virtual com stlink connectivity in discovery board we need to configure it and use a UART to USB adapter
+
+### Lecture 10 - ST-Link Driver Installation
+
+* to use ST Link from our dev machine we need to install ST Link Drivers
+	* Windows: use Executable from st.com
+	* Mac: no driver installation needed
+	* Ubuntu:
+```
+sudo apt-get install libusb-1.0
+sudo apt-get install libc6:i386 lib32ncurses5
+```
+* in woin we download and install prior to connecting the device
+* connect device and go: Control Panel => Device Manager => COM Ports to verify the COM port it is listening to
+* IDE uses this port and we can use this port to communicate the device through terminal
+
+### Lecture 11 - ST Link Firmware Upgrade
+
+* in the board page in ST we download firmware upgrade
+* we use the version for the platform we use  (follow the readme file)
+* ST-LINK/V2-1 is same as ST-LINK/V2-A
+* we upgrade our firmware 
+
+## Section 2 - OpenSTM32 System Workbench Installation
+
+### Lecture 13 - Downloading and Installing OpenSTM32 System-Workbench
+
+* Go to [OpenSTM32](www.openstm32.org) and download it
+* we register
+* go to to the download area
+* read the info in the install page
+
+### Lecture 14 - Installing OpenSTM32 System-Workbench
+
+* after downloading the installer we run it
+* we follow installation procedure
+
+### Lecture 16 - STM32CubeMX Installationstm32
+
+* Download it from [here](https://www.st.com/en/development-tools/stm32cubemx.html)
+* stm32cubemx is a tool to generate code for stm32 checking our config
+* we run the installer (java is required)
+* 
