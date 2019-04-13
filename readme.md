@@ -212,4 +212,75 @@ int main(void) {
 
 ### Lecture 23 - Exercise: LED Toggling App using Board BSP APIs
 
+* we will flesh out the empty main
+* every dev board has some user leds
+* first we need to have a look at the schematic of the board to see the GPIO that is connected to it
+* we look at NUCLEO board [user manual](https://www.st.com/content/ccc/resource/technical/document/user_manual/98/2e/fa/4b/e0/82/43/b7/DM00105823.pdf/files/DM00105823.pdf/jcr:content/translations/en.DM00105823.pdf)
+* User LED LD2 is cconnected to pin D13 for nucleo (GPIO port D #13)
+* We will use the BSP package to control the LED => click on Manage Run-Time Environment button => Board Support : select the BOARD we use => LED(API) enable to add LED support to or app
+* if it asks for STM32 Cube Framework select Classic
+* we get a Board Support enbtry in the project tree. under it we have a C file 'LED_Nucleo-F446RE.c' for controlling the LEDs in the NUCLEO board. it contains ready methods to control the LED on the board. the methods are for:
+	* initializing the LED
+	* unitialize the LED
+	* turn on/off
+* we add `LED_Initialize();` in the main. we get a warning as we have not an h file to declare and include the prototype befre using it (implicit declaration). it compiles but ...
+* in 'LED_Nucleo-F446RE.c' where we got the method from it includes 'Board_LED.h' that contains the prototypes of the LED methods. we include it in our main.c `#include "Board_LED.h"` to resolve the warning
+* we will turn the LED on with 'LED_On' passing the LED num `LED_On(0);` we give 0 as NUCLEO has only 1 user led LD2 but indexes are 0 based (assumption)
+* before downloading the code to the board we have to do some settings regarding the target: In project tree RCLICK on Target1 => Options for target 'Target1' => Debug tab => Use => select used debugger (ST-LINK Debugger) => Click Settings => Enable Download options (Verify Code Download, Download to Flash) => OK => OK
+* We are ready to download => Click on Load button 
+* Wait load to finish and Reset the board. IT WORKS
+* To toggle it we nedd to  set it on and off. we will implement a function for soft delay
+```
+void delay(void) {
+	uint32_t i = 0;
+	for(i=0;i<500000;i++);
+}
+```
+* we include the stdint.h to use the uint32_t type `#include <stdint.h>`
+* we use  a while loop and elay in main to do the toggle
+```
+int main(void) {
+	LED_Initialize();
+	while(1){
+		LED_On(0);
+		delay();
+		LED_Off(0);
+		delay();
+	}
+	return 0;
+}
+```
+* we get a warning because while is perpetual and return is unreachable
+
+### Lecture 24 - Exercise: LED Toggling App using Board BSP APIs-Nucleo
+
+* we have done it
+
+### Lecture 25 - Exercise : Adding button support using board BSP APIs(Nucleo)
+
+* our goal is when we press the User button the led should toggle. when we leave the button the toggle should stop
+* we check schematic: when USer button is pressed the GPIO Port C13 goes to GND (0) when it is unpressed it goes to VDD (1)
+* we give it a try: Manage Runtime Env => Board Support => Button API enable => see the offered methods in 'Buttons_Nucleo-F446RE.c' => add `#include "Board_Buttons.h"` in main
+* We use `Buttons_Initialize();` to initialize and `Buttons_GetState()` to get the state of the buttons (1 if it is pressed 0 otherwise).
+* our main becomes
+```
+int main(void) {
+	LED_Initialize();
+	Buttons_Initialize();
+	while(1){
+		if (Buttons_GetState() == 1){
+					LED_On(0);
+					delay();
+					LED_Off(0);
+					delay();
+		}
+	}
+	return 0;
+}
+```
+
+## Section 6 - LED/Button Exercises with OpenSTM32 SystemWorkbench
+
+### Lecture 26 - Creating First project using OpenSTM32 System workbench : LED Toggling App
+
 * 
