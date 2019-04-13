@@ -135,4 +135,81 @@ sudo apt-get install libc6:i386 lib32ncurses5
 * Download it from [here](https://www.st.com/en/development-tools/stm32cubemx.html)
 * stm32cubemx is a tool to generate code for stm32 checking our config
 * we run the installer (java is required)
+* we open cubemx, setup connection
+* Help => Help opens the hefty manual (378 pages)
+* Help => Check for updates checks for latest updates (firmware for the microcontroller type etc)
+
+## Section 4 - KEIL-MDK-5 Setup For ARM Cortex M based MCUs
+
+### Lecture 18 - KEIL-MDK-5 Installation
+
+* we will see how to setup a keil based microcontroller dev env 
+* keil is only on windows
+* go to [MDK5  homepage](http://www2.keil.com/mdk5/)
+* in its core is the IDE + Debugger and a native C/C++ compiler for ARM. we can use gcc but by default it uses the ARM proprietary compiler
+* OpenSTM32 is GCC+Eclipse.
+* Keil gives things out of the box like the CMSIS-Core to talk to the core processor
+* KEIL supports man devices from different manufacutres offering HAL, startup code and CMSIS drivers. 
+* Middleware is avaialble for extra cost
+* We go for free version which has a limitof 32KB of compiled code
+* we install mdk5 and launch it (keil uVision5 IDE)
+	* NOTE install packs in '<keil install folder>/ARM/PACK'
+
+### Lecture 20 - KEIL-MDK-5 Pack Installation
+
+* Keil is from ARM for ARM MCUs
+* after IDE installation we need to install BSPs for the board we use and the pack of the MCU
+* a dev board package contains all. example code, datasheets bsp, hal for mcu, drivers
+* in kEIL uVision IDE we click 'Pack Installer'
+* In opens a window with a list of manufacturers and thier products grouped in families
+* Devices is for MCUs, Boards is for DevBoards
+* we locate our board. on right we have the avialable SW components
+	* DFP is device firmware package. it contans all needed (code, firmware drivers). we need to install this
+* the dfp is for MCUfamily. so if we use compatible MCU dev boards it will do the trick
+* Nucleo Boards have a BSP available in Keil.
+* DFP is per MCU , BSP is per Board. unless we do dev board clones BSP is of little use for custom boards
+* We install DFP and BSP for Nucleo boars
+
+### Lecture 21 - Locating Pack Installation files
+
+* in '/Keil-V5/ARM/packs/Keil' we have our installed packs
+* in '/STM32F4xx_DFP' we have
+	* '/Drivers' has the MCU HAL driver. in '/Src' we have drivers for all the peripherals on the MCU. '/Inc' has te header files
+* Same folders are in the Eclipse = CubeMX toolchain
+
+### Lecture 22 - Creating a KEIL Project
+
+* in keil uVision we go: Project => New uVision Project
+* we set the directory and the name => Save
+* keil asks us to spec the MCU used. we select STM32F446RE
+* we are shown the Manage Runtime-Env Environment window
+	* we select our board (NUCLEO-F446RE)
+	* in 'Device' we click Startup to get a stertup code. that  gives a warning as it requires an additional package CMSIS CORE to be installed
+	* We install CMSIS CORE either clicking resolve or CMSIS => Core
+	* we click OK
+* a project is created. it contains:
+	* Source Group 1 folder
+	* CMSIS api as header
+	* A device statup code as C and as assembly
+* C file imports several header files. but it DOEST NOT contain a main()
+* C file initializes the board
+* we compile the project and get an error 'undefined main'
+* the code execution starts with the reset handler of the MCU. this is whats called when the MCU powers up
+* `Reset_Handler` is present in the startup assembly file . we search for it in the s file and see it is called.
+* first thing it tries to do is to try to call `SystemInit`
+* `SystemInit` is defined in the C file
+* after SystemInit , main is called by the Reset_Handler
+* so we need to define a main and include it
+* in Source Group 1 we add a new file (Add new item..., C file) 'main.c' adding boilerplate code
+```
+int main(void) {
+	return 0;
+}
+```
+* we build and get 0 errors
+
+## Section 5 - LED/Button Exercises using BSPs
+
+### Lecture 23 - Exercise: LED Toggling App using Board BSP APIs
+
 * 
