@@ -357,4 +357,29 @@ HAL_Delay(500);
 
 ### Lecture 32 - Features of Cortex Mx Processor
 
+* Operational Mode of the Processor
+* Different access levels of the processor
+* Register set of the processor (general purpose set, special purspose set)
+* Banked stack design of Processor
+* Exceptions & Exceptions handling
+* Interrupt Handling
+* Bus interfaces and bus matrix
+* memory architecture, bit banging, memory
+* endianess
+* aligned adn unaligned data transfer
+* bootloader and IAP (in applicaiton programming)
+
+### Lecture 33 - Operational Modes of the Cortex Mx Processor
+
+* this lecture applies to M0/M3/M4 cortex microprocessors
+* processor gives 2 operational modes
+	* thread  mode
+	* handler mode
+* all our app code will execute under "thread mode" of the processor. this mode is also called "user mode"
+* all the exception handlers and interrupt handlers will  run under the processor "handler mode"
+* procesor always starts with "thread mode"
+* whenever the core meets with the system excetion or external interrupts it will change mode to handler mode to service the associated ISR
+
+### Lecture 34 -  Operational Modes of the Cortex Mx Processor: Demonstration
+
 * 
