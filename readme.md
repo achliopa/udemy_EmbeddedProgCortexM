@@ -216,7 +216,7 @@ int main(void) {
 * every dev board has some user leds
 * first we need to have a look at the schematic of the board to see the GPIO that is connected to it
 * we look at NUCLEO board [user manual](https://www.st.com/content/ccc/resource/technical/document/user_manual/98/2e/fa/4b/e0/82/43/b7/DM00105823.pdf/files/DM00105823.pdf/jcr:content/translations/en.DM00105823.pdf)
-* User LED LD2 is cconnected to pin D13 for nucleo (GPIO port D #13)
+* User LED LD2 is cconnected to pin A5 for nucleo (GPIO port A #5)
 * We will use the BSP package to control the LED => click on Manage Run-Time Environment button => Board Support : select the BOARD we use => LED(API) enable to add LED support to or app
 * if it asks for STM32 Cube Framework select Classic
 * we get a Board Support enbtry in the project tree. under it we have a C file 'LED_Nucleo-F446RE.c' for controlling the LEDs in the NUCLEO board. it contains ready methods to control the LED on the board. the methods are for:
@@ -282,5 +282,79 @@ int main(void) {
 ## Section 6 - LED/Button Exercises with OpenSTM32 SystemWorkbench
 
 ### Lecture 26 - Creating First project using OpenSTM32 System workbench : LED Toggling App
+
+* we launch openstm32 eclipse app and set our workspace folder
+* we will create anew project using the help of cubemx software
+* we open CubeMX software => New Project => (MCU selector for custom boards, Board Selector for ST dev boards or clones) => We choose Board because we use ST boards. => We selct our board from the list (NUCLEO-F446RE) => Double click on the picture to use the board for our project => We get a prompt if we want all peripherals initialized with their default mode (we click yes, but it is crucial to think about it depending on the project, no for custom boards) => We see the Pinout configuration screen (preconfigured for dev board of choice)
+* We need to save the CubeMX project: Project Manager tab => Project Location (Use OpenSTM32 Workspace) => Give project a name: '001Led_Toggle' => Set toolchain: SW4STM32 (Deselect 'Generate under Root'!!!!!!!) => Use default Firmware Loation point to the latest firmware available when cubeMX was installed. if we use a more recent one we need to rreference it manualy. IT should match the 'Firmware Package name and Version'
+* Then go to Code Generator Tab: make sure 'Copy only the necessary lib files' is selected
+* We go to File => Save Project
+* we check the pin config screen. some of the pins are initialized to default status (board based) showing Green. LED pin PA5 is set a output
+* We click on GENERATE CODE, we get errors probably because our workspace in in a user folder..
+* we import the project to OpenSTM32: File => Import => General => Existing Projects into Workspace => Browse for generated project => it finds the project (clicked) => Finish
+* our project is added to OpensSTM32
+
+### Lecture 27 - Writing LED Toggling Application ( For Nucleo)
+
+* In OpenSM32 generated project tree we go to: Application => User => main.c
+* it has all initializations ready and a while(1) loop
+* in there we write our code
+* CubeMX adds all drivers in the project: Drivers => STM32F4xx_HAL_Driver we have MCU specific peripheral drivers exposing an API
+* we are interested in 'stm32f4xx_hal_gpio.c' for LED blinking.
+* We will use 'HAL_GPIO_TogglePin' pasing in port and pin (PA5) `HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);`
+* to autocomplete LCTRL+SPACE
+* we need to add some delay. from 'stm32f4xx_hal.c' api we will use `void HAL_Delay(uint32_t Delay)` passing delay in msec `HAL_Delay(500);`
+* we build our project (hammer button) and see progres in console
+
+### Lecture 28 - Downloading and testing LED Toggling Application ( For Nucleo)
+
+* to download select project in project tree => RCLICK => Target => Program Chip
+* in the modal select (Reset after program) => OK... Chip is programmed and IT WORKS
+
+### Lecture 29 - Writing LED Toggling Application ( For Discovery)
+
+* same process. select the board in CubeMX and follow the same pattern
+* Leds for our DISCO board are at PG13 and PG14
+* code is 
+```
+HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_13);
+HAL_GPIO_TogglePin(GPIOG, GPIO_PIN_14);
+HAL_Delay(500);
+```
+
+### Lecture 30 - Adding button support
+
+* In CubeMX we create a New Project for Nucleo board named '003Button' 
+* the project manager options are the same as before
+* button is in PC13
+* another way to configur e is to go to System View => GPIO => check configuration
+* PC13 is External interrupt Mode (Input)
+* CODE GENERATE
+* we import project in OpenSTM32
+* we check API on 'stm32f4xx_hal_gpio.c'. we will use 'HAL_GPIO_ReadPin'.
+* CubeMX HAL reflects actual hardware. PC13 (pushbutton) is pulld down. so when  pressed Input is 0, 1 otherwose
+* the code we add in  while(1) loop in main is
+```
+	 if(HAL_GPIO_ReadPin(GPIOC,GPIO_PIN_13) == GPIO_PIN_RESET) {
+		 HAL_GPIO_WritePin(GPIOA,GPIO_PIN_5,GPIO_PIN_SET);
+		 HAL_Delay(500);
+		 HAL_GPIO_WritePin(GPIOA,GPIO_PIN_5,GPIO_PIN_RESET);
+	 }
+```
+* macros GPIO_PIN_RESET is 0 and GPIO_PIN_SET is 1
+
+### Lecture 31 - OpenSTM32 System Workbench Debugging
+
+* to debug a projectin OpenSTM32 sys workbench: RCLICK on project in tree => Debug As
+* We choose AC6 application
+* or we can choose the debug button
+* Workbench asks us to change the perspectiv einto debug mode
+* the re are 2 IDE perspectives (Editing, Debugging)
+* we add a breakpoint in HAL_Init() and check debugging
+* to return to Edit mode click C/C++ button on Top-Right corner of IDE
+
+## Section 7 - ARM Cortex Mx Processor: Architecture Details
+
+### Lecture 32 - Features of Cortex Mx Processor
 
 * 
