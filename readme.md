@@ -485,4 +485,24 @@ void WWDG_IRQHandler(void) {
 
 ### Lecture 38 - ARM Cortex Mx Core Registers Discussion : Part 1
 
-* 
+* in the generic user guide at 2.1.3 we see the Core registers of the the Cortex M4 processor. these registers we see at debug mode of our program at the registers list, listed as Core
+* They are part of the Cortex-M4 Core
+* As Cortex-M4 is 32bit. the Core registers are 32bit as well.
+* Registers from R0 to R12 (13 in total) are for general purpose
+* The register R13 is called Stack pointer (SP). it is used to track the Stack Memory. 
+* It has 2 versions called 'Banked' : PSP (Process Stack Pointer) and MSP (Main Stack Pointer)
+* Always one of the versions is active and the other inactive. this depends on the mode of the Processor
+* Register R14 is the Link Register (LR). Link Register  stores the return information of subroutines, function calls and exceptions. On  Reset the proc sets the LR to 0xFFFFFFFF
+* to understand it we run the blinky program in Keil. we add a breakpoint at Led_On(0) and run it in Debug mode.
+* i monitor LR status and the disassembly code (assembly code of our program)
+* in dissassembly when we call a function we see `..... BL.W Led_On(0x080003E4)` which means branch to the address of the function.
+* when it does this it stores in LR the address to return to after returning from the function it will move to. it is a way to point back to the caller.
+* the actual value passed in is the address of the instruction to branch to the Function + 1
+* when the function returns it does 'BX lr' so it branches to LR
+
+### Lecture 39 - ARM Cortex Mx Core Registers Discussion : Part 2
+
+* Register R15 is the Program Counter (PC). It contains the current program address. On reset, the proc loads the PC with the value of the reset vector which is address 0x00000004. Bit0 of the value is loaded into the EPSR T-bit at reset and must be 1.
+* we test it again at blinky program. at debug mode. we see that PC holds the address of the instruction the program that is executed at the moment
+
+### Lecture 40 - ARM Cortex Mx Core Registers Discussion : Part 3
