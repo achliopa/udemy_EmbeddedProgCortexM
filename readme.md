@@ -506,3 +506,38 @@ void WWDG_IRQHandler(void) {
 * we test it again at blinky program. at debug mode. we see that PC holds the address of the instruction the program that is executed at the moment
 
 ### Lecture 40 - ARM Cortex Mx Core Registers Discussion : Part 3
+
+* after the  16 R registers we have 5 special purpose registers
+* PSR (Program Status Register) combines:
+	* APSR (Application Program Status Register) bit 27-32. Contains the current state of previous instruction executions condition flags (ALU condition flags)
+	* IPSR (Interrupt Program Status Register) bit 0-8. Contains the exception type number of the current ISR
+	* EPSR (Execution Program Status Register) bit 10-15, 24-26
+* These registers are mutually exclusive inthe 32b PSR. The Bit Assigmnement is:
+	* bit0-8: ISR_NUMBER (IPSR) gives the number of the currently active ISR
+	* bit9-15: ICI/IT (EPSR) Interruptible-Continuable Instruction/If-Then Instruction execution state bits
+	* bit24: T (EPSR) Thumb State Bit
+	* bit25-26: ICI/IT (EPSR) Interruptible-Continuable Instruction/If-Then Instruction execution state bits
+	* bit27: Q (APSR) DSP overflow and Saturation Flag
+	* bit28: V (APSR) Overflow Flag
+	* bit29: C (APSR) Carry on Borrow Flag
+	* bit30: Z (APSR) Zero Flag
+	* bit31: N (APSR) Negative Flag
+* To understand ISR_NUMBER we run operational_mode app with a brakpoint in the watchodog IRQ handler. the ISR_NUMBER is 16 when we are in the handler 16=IRQ0. according to the startup_stm32f446xx.s Vector table is the 'WWDG_IRQHandler' as i would expect
+* ICI is used for an interrupted load multiple or store multiple instruction.
+**T bit of EPSR**
+* Various ARM processors support interworking, that means the ability to switch between ARM and Thumb instruction sets
+* If "T" bit is set (1), the processor thinks that the next instruction which it is about to execute if from the "Thumb instruction set"
+* If "T" bit is reset (0), then processor thinks that the next instruction which is about to execute is from "ARM instruction set"
+* The Cortex-M4 processor only supports execution of instructions in Thumb state. Attempting to execute instructions when the T bit is 0 results in a fault or lockup with "User fault" exception
+* The bit0 of the PC (ProG Counter) is linked to the T bit. So any address we place in PCmust have bit0 = 1
+* This is taken care by the compiler so programmers have not to worry about it.
+* This is why we see all vector addresses  incremented by 1 in teh vector table
+* The following can clear the T bit to 0:
+	* instructions BLX, BX and POP{PC}
+	* restoration from the stacked xPSR value on an exception return
+	* bit[0] of the vector value on an exception entry or reset.
+* We confirm the T bit in Debug mode => Reset => the see the dsaasembly. Reset Handler is in address 0x08000248 but if we look at 0x00000004 (adress where we store the reset handler) the stored address is 0x08000249 so incremented by 1 for the T-bit
+
+### Lecture 41 -  Importance of 'T' bit of the EPSR
+
+* 
