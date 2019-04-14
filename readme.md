@@ -382,4 +382,107 @@ HAL_Delay(500);
 
 ### Lecture 34 -  Operational Modes of the Cortex Mx Processor: Demonstration
 
+* we will use a Keil project to demonstrate the operational modes of the processor
+* we create a new project called 'operational_modes' in Keil for our fev board. add a main.c implementing the main func
+* we add a while(1) loop
+```
+int main(void){
+	while(1);
+	return 0;
+}
+```
+* our method just burns cycles and does othing
+* we set debugger and load the project to chip. we add a brakepoint at while(1) and click the debug button to tenter in debug mode
+* in register list we see the Core loaded to the board but not running
+* The dissasembly shows that we are in an infinite loop. the next instruction is branch (B) to the same address
+* in the register list in group Internal we see that the Mode is Thread. we cnfrm tha that the processor always starts in thread mode
+* if i Run (F5) i see the processor is in thread mode
+* we will trigger an exception or interrupt to see it switch to handler mode
+* we will simulate watchdog interrupt in a helper function using the CMSIS APIs
+* we include the CMSIS STM32F446xx Device Peripheral Access Layer Header File `#include "stm32f446xx.h"`
+* first we need to enable the IRQ (ennable the interupt) apssing the interrupt id `NVIC_EnableIRQ(WWDG_IRQn);`
+* now we have to trigger it `NVIC_SetPendingIRQ(WWDG_IRQn);`
+* our helper menthod
+```
+void generate_interrupt(void) {
+	// lets simulate the watchdog interrupt
+	NVIC_EnableIRQ(WWDG_IRQn);
+	NVIC_SetPendingIRQ(WWDG_IRQn);
+}
+```
+* we call it in main before the while loop. the result is to fire the Watchdog Interrupt, take excution to the watchdog intrrupt handler and we expecto to see the Core going to handler mode
+* we have to implement the watchdog intrrupt handler to be able to see this
+* in startup assembly file we have the list of interrupt handlers. the one that interests us is 'WWDG_IRQHandler'
+* we implement it adding a for loop to be able to catch it
+```
+void WWDG_IRQHandler(void) {
+	for (int i=0;i<50;i++);
+}
+```
+* we add a break point in main at `generate_interrupt();`. we compile flash and enter debug mode
+* we are in thread mode ready to branch. we add abreak point at EnableIRQ in helper and run. we do step by step debuging and enable th iterrupt
+* when we add the breakpoint in IRQhandler we run and see core in handler mode
+* when it finishes service the interrupt it returns in thread mode
+
+### Lecture 35 - Access Levels of the Cortex Mx Processor
+
+* Processor offers 2 access levels:
+	* Priviledged Access Level (PAL)
+	* Non-Priviledged Access Level (NPAL)
+* if our code is running with PAL, our code has full access to all the processor specific resources and restricted registers
+* if our code is running with NPAL, then our code may not have access to some of the restricted registers of the Processor
+* By default our code will run in PAL
+* When the processor is in "Thread Mode" its possible to move processor into PAL. Once we move out of the PAL to NPAL being in thread mode, then its not possible to go back to PAL unless we change the processor operational mode to "Handler Mode"
+* "Handler Mode" code execution is ALWAYS with PAL
+* we can use the CONTROL register of the processor if we want to switch between Access Levels
+* in our previous excersize in debug mode int eh Registers list in the Internal under mode we had the Priviledge reg that was  always Priviledged
+* to change that we need to play with the control register.we can learn about them in the [Generic User Guide](http://infocenter.arm.com/help/topic/com.arm.doc.dui0553b/DUI0553.pdf) at 2-9 (p22)
+* CONTROL register is part of Core registers (2.1.3)
+* we see that bit0 'nPRIV' of CONTROL register defines the Thread Mode priviledge level. 0 for PAL and 1 for NPAL
+
+### Lecture 36 - Access Levels of the Cortex Mx Processor: Demonstration Part-1
+
+* we create a new project in KEIL 'access_levels'
+* we cp the previous lecture's main.c
+* we download the code and go to debug mode
+* in registers in System group CONTROL reg has value 4 (bit0 is 0 PAL)
+* we will implement a func to move the proc to unpriviledged mode and call it instead of generate_interrupt() `RTOS_Init();` to emulate a typical RTOS operation
+* in it we call a app task method 'call_application_Task' but before calling it will change from PAL to NPAL. to do this we use a method ofCMSIS api from 'cmsis_armcc.h' `__set_CONTROL` to set bit0 to 1 (NPAL)
+* first we get the value and mask it
+* the code for setting the priviledge flag in COntrol reg is 
+```
+	uint32_t value = __get_CONTROL();
+	value |= 0x01;
+	__set_CONTROL(value);
+```
+* we compile load and debug we see the CONTROL reg changing from 4 to 5 and the Priviledge from PAL to NPAL
+* what we do is common in RTOS or embeddedOS to treat application tasks as Unpriviledged
+
+### Lecture 37 - Access Levels of the Cortex Mx Processor: Demonstration Part-2
+
+* we will now attempt to clear the priviledge bit from CONTROL reg in the unpriviedged application task function (we should not be allowed to do it)
+```
+	uint32_t value = __get_CONTROL();
+	value &= 0x00;
+	__set_CONTROL(value);
+```
+* we debug it adding breakpoints. the set reg is ignored and proc remains in NPAL mode
+* we will test now going to Handler mode => Thread mode to see if this returns priviledge mode PAL to NPAL
+* in 'call_application_Task' we call `generate_interrupt();` and in 'WWDG_IRQHandler' we will try to move CONTROl reg back to PAL
+```
+void WWDG_IRQHandler(void) {
+	for (int i=0;i<50;i++);
+	
+	/* lets try to move the processor to PAL */
+	uint32_t value = __get_CONTROL();
+	value &= ~0x01;
+	__set_CONTROL(value);
+}
+```
+* we debug but while in NPAL our generate_interrupt fails to reach `NVIC_SetPendingIRQ(WWDG_IRQn);`
+* we suspect that while in NPAL we cannot enable interrupts
+* we stop and see we are traped in a HardFault Handler. this confirms that while in NPAL we cannot play with the System Interrupt registers
+
+### Lecture 38 - ARM Cortex Mx Core Registers Discussion : Part 1
+
 * 
