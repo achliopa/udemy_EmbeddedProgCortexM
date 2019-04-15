@@ -538,6 +538,28 @@ void WWDG_IRQHandler(void) {
 	* bit[0] of the vector value on an exception entry or reset.
 * We confirm the T bit in Debug mode => Reset => the see the dsaasembly. Reset Handler is in address 0x08000248 but if we look at 0x00000004 (adress where we store the reset handler) the stored address is 0x08000249 so incremented by 1 for the T-bit
 
-### Lecture 41 -  Importance of 'T' bit of the EPSR
+### Lecture 41 - Importance of 'T' bit of the EPSR
+
+* we will demonstrate it using the 'operational_modes' project
+* we add a breakpoint in `generate_interrupt();` and fire debugger
+* our program is ready to branch in the function address. this address will be placed in PC
+* we confirm that address is placed in PC as is. (not added 1 in bit0). the zero bit is the EPSR T-bit.
+* to show this we change the way we call generate_interrupt(). from straight call to using function pointers
+```
+	//generate_interrupt();
+	void (*jump_addr) (void) = &generate_interrupt;
+	jump_addr();
+```
+* we fire the debugger
+* the address of generate_interrupt is 0x08000374 but it is stored in jump_addr as 0x08000375 so incremented by 1
+* steping in the function using the pointer we see that PC becomes 0x08000374 while Tbit is 1.
+* we change the code hardcoding into the function pointer the address of the function `void (*jump_addr) (void) = (void *) 0x08000374;` now jump_addr is not incremented by 1 like before (as we hardcode it and compiler cannot do the trick )
+* when we call jump_addr() we place the (hardcoded) address into PC. it gets passed but as there is not 1 bit0. Tbit becomes 0 (when we single step in the function)
+* So once we step into a function bit0 of function address is copied in Tbit (and it should be 1)
+* Now that Tbit is 0 the proc thinks the next instruction is from ARM instruction set. instead of `0x08000374 4C01      LDR           r4,[pc,#4]  ; @0x0800037C` we go to `0x08000252 E7FE      B             HardFault_Handler (0x08000252)` which is the hardFault_Handler and Tbit becomes 1
+* if we repeat the example harcoding the address to 0x08000374+1 then problem is solved.
+* The moral of the story is (DO NOT HARDCODE FUNCTION ADDRESSES) leave compiler do its job.
+
+### Lecture 42 - Importance of PRIMASK & FAULTMASK registers: Part-1
 
 * 

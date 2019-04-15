@@ -13,6 +13,9 @@ void generate_interrupt(void) {
 
 int main(void){
 	generate_interrupt();
+	//void (*jump_addr) (void) = &generate_interrupt;
+	//void (*jump_addr) (void) = (void *) 0x08000374+1;
+	//jump_addr();
 	while(1);
 	return 0;
 }
