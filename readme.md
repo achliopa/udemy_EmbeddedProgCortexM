@@ -706,4 +706,63 @@ main();
 
 ### Lecture 48 - Aligned and Un-aligned data transfer
 
+* aligned data transfer:
+	* word alligned data will always be places in addresses that are multiple of 4. e.g 0x00000000 0x00000004 0x00000008
+	* <32 bit data like 8bit char or 16bit short will be stored in intermediate addresses
+	* this means unused memory spaces are created.
+	* storing the data in aligned fashion may waste SRAM space but boosts performance because it is BUS friendly
+	* processor needs only 1 cycle for every word fetch
+* un-aligned data transfer:
+	* data is stored using  `__packed` keyword in a struct definition. 
+	* data are compacted in conscutive mem locations (no gaps) with 1byte granularity. mem efficiency
+	* when an unalignewd data trasfer is issued by the processor data are actually converted to multiple aligned transfers by the processor bus interface unit
+	* since it is broken into several separate aligned transfers and as a result it takes more clock cycles for a single data access and might not be good in situations where highe performance is required.
+```
+struct __packed mydata
+{
+	unsigned long data1;
+	char data2;
+	unsigned long data3;
+	char data4[3];
+	short int data5
+}
+```
+* how an unaligned data trasfer happens?
+	* direct pointer manipulation
+	* accessing `__packed` data structs
+	* inline assembly code
+* instructions are aligned using 2byte granularity in mem space as Cortex M3/4 uses Thumb-2 instruction set. some instractions use 4bytes thoghoug
+* Thumb-2 ISA is combination of 16b and 32b instructions
+* processor fetches instructions in word boundary, it fetches 1 32bit instr or 2 consequent 16bit instructiosn
+* AVOID UNALIGNED DATA STORAGE
+
+### Lecture 49 - Bit-Banding
+
+* Bit banding:
+	* a capability to address a single bit of memory address
+	* this feature is optional (mcu manufacturer dependent)
+* Bit band regions are the regions in memory map of the processor whose each bit can be uniquely addressed by using dedicated address(bit-addressable)
+* There are 2 such regions 1MB each. in SRAM and Peripehral region
+* The Bit band alias region is 32MB. a mem byte in allas region is a bit in the bit-band region
+* To set/reset any bit of the bit band memory region address, then we can do that using corresponsding bit address (byte address) in the bit band alias region
+* if we want to set the 2nd bit of 0x20000000 address:
+	* With-out bitband: read 0x20000000 to register => mask and set bit 2 => write back to 0x20000000
+	* with bit-band: write 1 to 0x22000008 (this address is called the alias address for bit2 of 0x20000000). 
+* under the hood when we write to bit-band alias the action is mapped to 2 bus transfers
+	* read data from 0x20000000
+	* write to 0x20000000 from buffer with bit2 set 
+* action is 1 instruction for core so non-interruptible
+* Mapping of bit-band region to bit-band alias:
+	* 0x20000000 bit0 => 0x22000000 
+	* 0x20000000 bit1 => 0x22000004
+	* 0x20000000 bit2 => 0x22000008 
+	* 0x20000004 bit0 => 0x22000080
+* advantage of bit-band regions
+	* faster register flag set
+	* less race conditions on shared resources (bit band alias address access is atomic)
+
+## Section 9 - LAB SESSIONS
+
+### Lecture 51 - Lab Assignments 3: Bit-Band Operations using C
+
 * 
