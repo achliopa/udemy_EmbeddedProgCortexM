@@ -649,4 +649,61 @@ main();
 
 ### Lecture 46 - Memory System features and Memory Map
 
+* Section objectives:
+	* mem system features
+	* proc mem map
+	* bus interfaces
+	* bus protocols
+	* aligned and unaligned data transfer
+	* bit banging and its advantages
+	* code example
+* Mem System Features:
+	* All CortexM processors have 32bit mem addressing (4GB of addressable mem space)
+	* The memory is one unified space which is shared by code space, data space and peripheral space
+	* Proc uses Harvard bus architecture. It means concurrent instruction and data accesses using multiple bus interfaces. It can simultaneously fetch data and instruction
+	* Support for little endian and big endian memory systems (config register)
+	* Support for unaligned data transfers
+	* Bit addressable memory spaces(bit-banding)
+	* MPU (Mem Protection Unit) support (optional)
+
+**ARM Cortex M3/M4 Mem Space**
+* CODE Region (0x00000000 - 0x1FFFFFFF) (512MB) Physically Implemented as FLASH or ROM memory on Chip 
+	* Vector Table (inital stack value, addresses of Exception handlers)
+	* Application Code
+* SRAM Region (0x20000000 - 0x3FFFFFFF) (512MB) Physically as On-chip RAM or SRAM, used for Stack Memory, We can execute code from here
+	* Bit-Band Region (0x20000000 - 0x20100000) (1MB) every bit is addressable
+	* 
+	* Bit-Band Alias (0x22000000 - 0x23FFFFFF)
+	*
+* Peripherals Region (0x40000000 - 0x5FFFFFFF) (512MB) Physically Various On-Chip Peripherals (see the datasheet), We cannot execute code from here
+	* Bit-Band Region (0x40000000 - 0x40100000) (1MB) every bit is addressable
+	* 
+	* Bit-Band Alias (0x42000000 - 0x43000000) 
+	*
+* External RAM Region(0x60000000 - 0x9FFFFFFF) (1GB) Physically on-chip or off-chip RAM (we can execute code from here)
+* External Device Region (0xA0000000 - 0xDFFFFFFF) (1GB) for exteral devices and/or shared memory (non-executable)
+* Private Bus "Internal" (0xE0000000 - 0xE003FFFF)
+	* NVIC (0xE000E000 - 0xE000F000)
+* Private Bus "External" (0xE0040000 - 0xE00FFFFF)
+	* External private peripheral bus (0xE0042000 - 0xE00FF000)
+	* ROM Table (0xE00FF001 - 0xE00FFFFF)
+* Vendor Specific (0xE0100000 - 0xFFFFFFFF)
+
+### Lecture 47 - Bus Protocols and Bus interfaces
+
+**Bus Protocols** (Interconnecting Proc with Peripherals)
+* AHB Lite (Main System Bus):
+	* AHB Lite protocol is used for the main bus interfaces
+	* AHB lite stands  for AMBA High Performance Bus which is derived from AMBA (Advanced Microcontroller Bus Architecture) spec
+* APB (Peripheral Bus):
+	* APB is AMBA compliant bus optimized for minimum power and reduced interface complexity
+	* APB is much simpler (power optimized) and much slower bus compared to AHB
+* There are multiple AHB Lite and APB interfaces:
+	* I-BUS A dedicated bus used to fetch the instructions and Vector Table from CODE region (AHB Lite based). all fetches are word aligned (32bit) so if instructions are 16bit we fetch them 2 by 2
+	* D-BUS is a bus dedicated for data fetches from SRAM (AHB Lite based) can access data from non word aligned mem addresses (unaligned)
+	* System Bus (32bit AHB Lite) for data and instruction fetch from MEM devs like SRAM or bus masters (USB,DMA)
+* For slower peripherals there is no need for fast AHB bus. AHB/APB bridge converters are used and APB for Slow Peripherals (Saves power)
+
+### Lecture 48 - Aligned and Un-aligned data transfer
+
 * 
