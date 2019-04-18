@@ -765,4 +765,35 @@ struct __packed mydata
 
 ### Lecture 51 - Lab Assignments 3: Bit-Band Operations using C
 
+* in our program we will change the value of BIT0,BIT1 and BIT2 of the data stored in the memory address 0x20000000 using bit-band operations
+* we make a new project 'bit-banding' using  the C file from course repo
+* the project uses macros for region base addresses
+```
+#define BIT_BAND_REGION_MEM_ADDR_1           *((volatile unsigned long *)(0x20000000))
+#define BIT_BAND_ALIAS_BASE_ADDRESS           (0x22000000)
+```
+* bit band region is the one to be ultimately modified 
+* we store in macro the aliases
+* our program
+```
+int main(void)
+{
+	uint32_t val;
+	BIT_BAND_REGION_MEM_ADDR_1 = 0xA0;
+	BIT_BAND_ALIAS_ADDRESS_1 = 0x01;
+
+	BIT_BAND_ALIAS_ADDRESS_2 = 0x01;
+	BIT_BAND_ALIAS_ADDRESS_3= 0x01;
+
+	val = BIT_BAND_REGION_MEM_ADDR_1;
+	return 0;
+}
+```
+* we check in ebug mode.
+* after first line 0x2000000 is A0 after bitbanding in alias mem for bit0 1 and 3 it becomes A7
+
+## Section 10 - Stacks
+
+### Lecture 52 - ARM Cortex Mx Stack Discussion : Part-1
+
 * 
