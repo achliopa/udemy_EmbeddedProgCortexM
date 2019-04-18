@@ -562,4 +562,91 @@ void WWDG_IRQHandler(void) {
 
 ### Lecture 42 - Importance of PRIMASK & FAULTMASK registers: Part-1
 
+* we move to the Exception Mask Registers PRIMASK and FAULTMASK
+* PRIMASK (Priority Mask) is a Priviledged Register. it prevenets activation of all exceptions with configurable priority. The bit assignment is 
+	* bit0: PRIMASK (0=no effect, 1=prevents the activation of all exceptions with configurable priority)
+	* bit1-31: reserved
+* we again use operational_mode project to showcase primask. if i change PRIMASK to 1 no exceptions are allowed so i disable interrupts globally.
+* we use CMSIS api `__set_PRIMASK(1);` and confirm that IRQ handler is not called
+
+### Lecture 43 - Importance of PRIMASK & FAULTMASK registers: Part-2
+
+* even if i set PRIMASK some exceptions like hardfault exception are enabled
+* FAULTMASK register prevents activation of all exceptions except from Non-Maskable Interupt(NMI) when bit0 is 1. bits1-31 are reserved 
+* with primask set if we use the example of Tbit harcoding the address and setting tbit=0 we still get in the hardfault exception handler.
+* if i set `__set_FAULTMASK(1);` then i dont get in the hardfault handler
+* we will simulate the NMI exception to see that even masking the FAULTMASK with the method `generate_NMI_Interrupt();` using CMSIS api
+```
+void generate_NMI_Interrupt(void) {
+	NVIC_EnableIRQ(NonMaskableInt_IRQn);
+	NVIC_SetPendingIRQ(NonMaskableInt_IRQn);
+}
+```
+* this does not work as the code we wrote is for normal interrupts not exceptions
+* NVIC_SetPendingIRQ(); works for IrQn >0 (external Interrupts) but NMI has IrQn -14 (exception) so its not triggered
+* to do it i have to directly manipulate SCB
+```
+	SCB_Type *pSCB;
+	pSCB = SCB;
+	pSCB->ICSR |= SCB_ICSR_NMIPENDSET_Msk;
+```
+* i debug and  see that i indeed am able to enter NMI handler eve if  FAULTMASK is set. NMI is registered as ISR =2 in registers
+* CONTROL register controls the stack used and the priviledge level for SW execution when proc is in Thread Mode
+* if implemented indicates whether the FPU state is active. Bit Asignment
+	* bit3-31: reserved
+	* bit2: FPCA (Floating Point Context Active) flag. M$ uss it to determine whether to preserve floating point state when processing an exception.
+	* bit1: SPSEL. Defines the currently active stack pointer. In handler mode this bit reads as zero and ignores writes. The M4 updates this bit automatically on exception return (0 = MSP, 1 = PSP is the current stack pointer)
+	* bit0: nPRIV defines the thread mode privilendge level (0=PAL,1=NPAL)
+
+### Lecture 44 - ARM Cortex Mx Processor Reset Sequence
+
+**Reset Sequence of the Cortex M4 Processor:**
+* When we reset the proc, PC is loaded with val 0x00000000
+* The proc reads the value @ memory location 0x00000000 in the MSP
+	* MSP = value@0x00000000
+	* MSP is a Main Stack pointer register
+	* That means, proc first initializes the Stack Pointer
+* After that proc reads the value @memory loc 0x00000004 into PC. that val is actually address of the reset handler
+* PC jumps to the reset handler
+* A reset handler is a C or assembly function written by the programmer to carry
+ out initializations
+* From the reset handler we call main() function
+
+### Lecture 45 - ARM Cortex Mx Processor Reset Sequence : Demonstration
+
+* we add a new project in keil 'reset_sequence' and add main.c
+* we add an empty main function and load
+* i enter debug mode and it automatically takes me to main
+* i reset the proc and see in debug that i am in the reset handler
+* in register i see that MSP has 0x20000660 which is the content of address 0x00000000
+* we confirm it in the mem viewer
+* we check in mem 0x00000004 and we confirm that it has the mem address of  reset handler 0x08000248 + Tbit (1)
+* we confirm that this address is loaded to the PC as we are in the handler
+* the startup code of the Keil lib in the reset handler loads and branches in the SystemInit function and then main
+* for app developer SystemInit is the palce to add initialization code
+* main is called a `__main`
+* Reset_Handler is implemented as WEAK assembly function so we can add a different one with the same name
+* we will implementa Reset_handler function in main.c
+```
+void Reset_Handler(void) {
+
+}
+```
+* we load , reset and see that we are in our implemented Reset_Handler
+* we emulate the assemlby Reset_handler in C
+```
+#include "system_stm32f4xx.h"
+
+void Reset_Handler(void) {
+SystemInit();
+main();
+}
+```
+* it works
+* we can simulate header file declaration of functions with `extern` in the c file `extern int __main(void);`
+
+## Section 8 - Memory System Architecture
+
+### Lecture 46 - Memory System features and Memory Map
+
 * 
