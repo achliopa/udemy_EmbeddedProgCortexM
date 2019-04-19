@@ -796,4 +796,91 @@ int main(void)
 
 ### Lecture 52 - ARM Cortex Mx Stack Discussion : Part-1
 
+**Banked Stack Pointers**
+* Cortex M Proc physically has 3 stack pointers
+	* SP (R13) (Current Stack Pointer)
+	* MSP (Main Stack Pointer)
+	* PSP (Process Stack Pointer)
+* After Processor Reset, by default MSP will be selected as current stack pointer. That means, SP copies the contents of MSP
+* Thread mode can change the current pointer to PSP by configuring the CONTRO reg SPSEL bit
+* Handler mode code execution will ALWAYS use MSP as the SP. So changing the SPSEL in handler mode has no effect.
+
+### Lecture 53 - ARM Cortex Mx Stack Discussion : Part-2
+
+**Banked Stack Pointers (continued)** 
+* MSP will be initialized automatically by the processor after reset by reading the content of the address 0x00000000
+* if we want to use the PSP then we must make sure that we initialize the PSP to valid stack address in our code
+
+### Lecture 54 - ARM Cortex Mx Stack Discussion : Part-3
+
+* we use 'blinky' as base for our 'stack_pointer' project
+* we debug and confirm that at startup SP and MSP have the same value which is the content of address 0x00000000 (reset sequence)
+* in the startup assembly file 'startup_stm32f446xx.s' we see that the stack size is set to 0x00000400 (4KB or 1024 32bit words). c equivalent would be `#define STACK_SIZE 0x400`
+```
+Stack_Size      EQU     0x00000400
+
+                AREA    STACK, NOINIT, READWRITE, ALIGN=3
+Stack_Mem       SPACE   Stack_Size
+__initial_sp
+```
+* `__initial_sp` is the value@0x00000000 which is 0x20000660 (top pf stack) set in the Vectors table
+* whenever we push to the stack it decreases from this value and stores the new value
+* by the term decrease we mean that the content of 0x20000660 is pushed to 0x2000065C (4byte word aligned) and 0x20000660 gets the new value.
+
+### Lecture 55 - ARM Cortex Mx Stack Discussion : Part 4
+
+* As we said Stack recides in the SRAM mem region. the available area is 112KB (0x2000_0000 - 0x2001_BFFF) and is named SRAM1. for our application top of the stack is at 0x2000_0660 and has a sixe of 0x400 so the bottom of the stack is at 0x2000_0460.
+* the whole area is available for the stack (we can set it programmatically) so the MAX stack we cen set is 447KB
+* we will move the top of the stack to the far end of the area (0x2001BFFF). we ll program 0x2001BFFF+1 (to be word alligned aka mulitple of 4). we are safe to do that as the value first will decrement by 4 and then store
+* we use the `__set_MSP()` from  'cmsis_armcc.h' passing in the address (topOfMainStack) `	__set_MSP(0x2001BFFF+1);`
+* we test it in debug and it works. so we can move the top of the stack at runtime (SCARY!!!!)
+* PUSH operations and POP operations (assemply) are done in the stack
+* we usually  set the top of stack in initialization function
+
+### Lecture 56 - ARM Cortex Mx Stack Discussion : Part 5
+
+* we will set the SPSEL (bit1) of CONTROL reg to set current SP to PSP unstead of MSP (in thread mode)
+```
+	uint32_t value= __get_CONTROL();
+	value |= (1 << 1);
+	__set_CONTROL(value);
+```
+* we debug and it works. PSP value is 0x000000000 in our app
+* this creates a serious problem as processor tries to decrement that to do the push and its impossible
+* we initialize PSP top fix that. PSP stack is again reserved in the SRAM! region `__set_PSP(0x2001BFFF+1);`
+
+### Lecture 57 - ARM Cortex Mx Stack Discussion : Part 6
+
+* in handler mode MSP will always be used as stack pointer. we will attempt to set SPSEL in the Interrupt handler to test it. we need to add an interrupt handler for this
+* we use our code from other project to generate  (WDOG_INTERRUPT)
+```
+void generate_interrupt(void) {
+	// lets simulate the watchdog interrupt
+	NVIC_EnableIRQ(WWDG_IRQn);
+	NVIC_SetPendingIRQ(WWDG_IRQn);
+}
+```
+* we also add the dummy handler 
+```
+void WWDG_IRQHandler(void) {
+	for (int i=0;i<50;i++);
+}
+```
+* ther we will attmept to mode the SPSEL in the handler. we confirm that nothing changes
+* we also confirm that when we enter Handler mode we switch to MSP from PSP and when goes back to Thread mode it goes back to PSP.
+* PSP makes sense when designing an Embedded OS. for simple apps we can use the MSP only
+* In an RTOS app we can program that User tasks use the PSP stack (in isolation) while the RTOS Kernel uses the Kernel Stack on MSP. (for safety). also before switching to User Task the RTOS changes priviledge mode from PAL to NPAL
+
+### Lecture 58 - Subroutine and Stack
+
+* According to the Procedure Call Standard of Arm Architecture when a function is called, as per below table, registers are used for parameter passing:
+	* R0 : input: first Input param => return: function return val
+	* R1 : input: second Input param => return: function return val if size is 64bit
+	* R2 : input: third input param
+	* R3 : input: forth input param
+* Caller function calls the callee function (subroutine)
+* its the callee 'function' responsibility to push the contents of R4-R11,R13,R14 if the function is going to change these registers. (compiler takes care when coded in C)
+
+### Lecture 59 - Stacking and Un-stacking during Exception
+
 * 
