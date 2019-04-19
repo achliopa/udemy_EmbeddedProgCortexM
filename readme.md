@@ -883,4 +883,31 @@ void WWDG_IRQHandler(void) {
 
 ### Lecture 59 - Stacking and Un-stacking during Exception
 
+* we use a drawing board example. 
+* Task A executes in THread mode using MSP.
+* MSP is pointing to the last stacked item
+	* used stack space
+	* last stacked item
+* when an exception occurs, processor pushes automatically many registers into the stack before executing the exception handler
+	* used stack space
+	* last stacked item
+	* xPSR
+	* Return Address
+	* LR
+	* R12
+	* R3
+	* R2
+	* R1
+	* R0
+* MSP now points to R0
+* processor changes mode (Handler Mode) and proc executes the exception handler
+* the contents stacked in the stack memory are called 'Stack Frame'
+* in total 32bytes are pushed into the stack (by default). this delay adds up to exception or interrupt latency
+* To avoid this pushing and popping crap ARM7TDMI introduced FIQ(Fast Interrupt reQuest) mode, where instead of storing to the stack, internal registers are used which improves latency . Cortex does not have FIQ mode
+* when proc finishes processing the handler it exits the ISR popping back and 32 bytes and MSP moves back to Last stacked item (unstacking operation)
+
+## Section 11 - LAB SESSION
+
+### Lecture 60 - Lab assignment 4: Stack Operations Using Different Stack Pointers (MSP/PSP)
+
 * 
