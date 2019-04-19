@@ -910,4 +910,56 @@ void WWDG_IRQHandler(void) {
 
 ### Lecture 60 - Lab assignment 4: Stack Operations Using Different Stack Pointers (MSP/PSP)
 
+* We will write a program to PUSH the contents of R0,R1,R2 registers using MSP as a stack pointer, and then POP the contents back using the PSP as a stack pointer
+	* Proc always starts in priviledged level and uses MSP as stack pointer
+	* We can change the stack pointer to PSP by writing to CONTROL reg (SPSEL)
+	* In C if we want to access MSP,PSP,CONTROL register then we have to use either CMSIS API or assembly
+* we start a project 'lab_exercise4' adding boilerplate main() to call our assepbly function
+```
+#include <stdint.h>
+#include "stm32f407xx.h"
+
+extern void do_stack_operations(void);
+int  main()
+{
+	/* This function is implemeted in Assembly */
+	do_stack_operations();
+	return 0;
+}
+```
+* we add a 'stack_ops.s' file for the assembly method
+* our assembly code is
+```
+	AREA    STACK_OP, CODE, READONLY
+    EXPORT do_stack_operations
+do_stack_operations
+    MOV R0,#0x11
+	MOV R1,#0X22
+	MOV R2,#0X33
+    PUSH {R0-R2}     ; PUSH the contents of RO,R1,R2
+	MRS R0,CONTROL ; Read the Contents of CONTROL register
+	ORR R0,R0,#0X02 ; set the SPSEL bit to 1, to select PSP
+	MSR CONTROL,R0  ; Write back to the CONTROL register 
+	MRS R0,MSP
+	MSR PSP,R0      ; Initialize the PSP
+	POP  {R0-R2}    ; POP back 
+
+    BX   lr           ; Return.
+    END
+```
+* we use the extern keyword to tell linker the method is implemented somewhere else
+* we see in registers and mem map the contents of the stack which indeed does what we expect
+* `AREA    STACK_OP, CODE, READONLY` tells compiler to assemble a new code area for the method
+* `EXPORT do_stack_operations` exports it as a C method to be called
+* function is ended using 'END'
+* `ORR R0,R0,#0X02 ` sets the 2nd bit
+* `MSR` writes and `MRS` reads
+* to copy the pointer from MSP to PSP i use R0  as temp
+* `POP` moves back the stack pointer and returns values to where they were copied from
+* to return we use  `BX lr`
+
+## Section 12 - System Exceptions and Interrupts-I
+
+### Lecture 61 - ARM Cortex Mx System Exceptions
+
 * 
