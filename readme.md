@@ -1130,4 +1130,93 @@ NVIC_Type	*pNVIC = NVIC;
 
 ### Lecture 72 - Exercise : Enabling and Pending of an Interrupt using CMSIS APIs
 
+* using CMSIS header files we dont have to use the stm32f446xx.h file and thus we can make our code portable among different vendors. but stm32f446xx.h file is CMSIS compatible so IT IS Portable
+```
+	// Enable the USART3 IRQ num 39
+	NVIC_EnableIRQ(USART3_IRQn);
+	
+	// Lets pend the interrupt
+	NVIC_SetPendingIRQ(USART3_IRQn);
+```
+
+### Lecture 72 - Priority and Interrupt Nesting
+
+* we create a new KEil project 'nvic_prioriry'
+* we will use WDOG IRQ and USART3 IRQ to show the priorities
+* first we enable  WWDG IRQ and USART3 IRQ
+```
+	NVIC_EnableIRQ(WWDG_IRQn);
+	NVIC_EnableIRQ(USART3_IRQn);
+```
+* then we pend the IRQs
+```
+	NVIC_SetPendingIRQ(WWDG_IRQn);
+	NVIC_SetPendingIRQ(USART3_IRQn);
+```
+* we add hanbdlers for them with infinite loops inside e.g
+```
+void WWDG_IRQHandler(void) {
+	while(1);
+}
+```
+* we flash and debug. we see that we are locked in the WOG handler as we pend it first (USAER3 pend is not called)
+* we do the nasty thinng of nesting USART SetPend in teh WDOG handler
+* we pend it but program is hanging in the WDOG handler (higher priority).
+* we remove infinite loop from WDOG handler where we pend the USART3 IRQ to see if we will enter after it exits from WDG ISR. SUCCESS WE ENTER
+* we increase the priority of the USART3 IRQ. we use 'NVIC_SetPriority(IRQn,priority)' 
+* WWDG default priority is 7 and USART3 46. so anything <7 will do. ichoose to set it for both.
+```
+	NVIC_SetPriority(WWDG_IRQn,5);
+	NVIC_SetPriority(USART3_IRQn,0);
+```
+* while having infinite loops inside handler. i see that changing priority does not force WWDG ISR to halt and enter USART3 ISR if i am inside the ISR. (Handler mode)
+* if i pend them after priority change still if WDOG IRQ is pended first priority has no effect. if i nest USART3 IRQ sepending inside the WWDG ISR it has effect!!!
+* SO Priority affects Nested Interrupts and can preempt executing ISR. so PRIORITY > ISR > THREAD MODE
+* If i make USART a finite ISR i see that execution goes back to WDOG after it exits!!!!
+* IN CORtex M4 we can have 8 levels IRQ nesting
+
+### Lecture 74 -  Interrupt Priority Register Discussion
+
+* Priority Value for a particular interrupt is configured using a register called PR whose size is just 8 bit
+* Since we have 240 IRQs we need 240, 8bit registers?
+* Thats why Cortex M proc provides 60 regs of size 32bit (NVIC_IPR0 - NVIC_IPR59) (4.2.7 in GUM of Cortex M4)
+* Each 32bit reg is a group of 4, 8bit PR regs holding the Priority value. 60x4=240 8bit regs
+* as it is 8 bit the min val is 0 and max is 255. manufacturers do not implement a number of 8 bits to limit the depth of nesting
+	* For ST STM32  bits 0-3 are NOT Implemented so only 16 programmable priorities
+	* for TI TIVA bits 0-4 are NOT Implemented so only 8 programmable priorities
+* what if i write the val 5 for IRQ0 (WWDG) it should not be possible as i have to wiite to bit0 and bit2. 
+* the correct way to do it is IPV << (8 - NO_OF_NON_IMPL) so for STM32  `5 << 4`
+* CHECK THE REF MANUAL OF YOUR DEVICE (or the header file)
+
+### Lecture 75 - Priority Grouping
+
+* The priority level register which we just saw is divided into 2 fileds
+	* ore-empts priority field
+	* sub-priority field
+* There are 8 different priority groups (possible grouping combos)
+	* 0 (default) : pre-empt priority field bit[7:1] : sub-priority field bit[0]
+	* 1  		  : pre-empt priority field bit[7:2] : sub-priority field bit[1:0]
+	* 2  		  : pre-empt priority field bit[7:3] : sub-priority field bit[2:0]
+	* 3  		  : pre-empt priority field bit[7:4] : sub-priority field bit[3:0]
+	* 4  		  : pre-empt priority field bit[7:5] : sub-priority field bit[4:0]
+	* 5  		  : pre-empt priority field bit[7:6] : sub-priority field bit[5:0]
+	* 6  		  : pre-empt priority field bit[7:7] : sub-priority field bit[6:0]
+	* 7  		  : pre-empt priority field none 	 : sub-priority field bit[7:0]
+* Pre-Empt Priority: when the proc is running an ISR, and another interrupt appears, then the pre-empt priority values will be compared and exception with higher pre-empt priority (less in number) will be allowed to run
+* Sub Piority: this value is used only when two exceptions with same pre-empt priority level occur at the same time. in this case the exception with higher sub-priority (less in number) will b ehandled first
+* Priority Grouping is configured in the Application Interrupt and Reset Control Register (AIRCR) of the SCB in bit8 to 10 (PRIGROUP)
+* Priority Grouping is applied in the NVIC_IPR0-59 registers where Vendor specific non implemented bits should be considered. e.g
+	* PRIGROUP = 0 (default) on STM32
+	* pre-empt priority wigth is 7 bits (only 4 implemented) so 16 programmable interrupt levels
+	* sub priority width 1bit (2 levels) (bit is in non implemented region so no sub-levels)
+* CMSIS for PrioriryGrouping (To avoid Register mess)
+	* `void NVIC_SetPriorityGrouping(uint32_t PriorityGroup)` sets the PRIGROUP in AIRCR
+	* `uint32_t NVIC_GetPriorityGrouping()`
+	* `uint32_t NVIC_EncodePriority(uint32_t PriorityGroup, uint32_t PreemptPriority, uint32_t SubPriority)` encodes the prioirty for an interrupt with the given priiority group preemptive and subpriority vals. returns an encoded priority to be used in SetPriority
+	* `void NVIC_SetPriority(IRQn_Type IRQn,uint32_t priority)`
+
+## Section 13 - LAB SESSION
+
+### Lecture 76 -  Lab assignment 5 : Exception Masking/Un-masking
+
 * 
