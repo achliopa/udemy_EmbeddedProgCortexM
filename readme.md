@@ -1003,7 +1003,7 @@ do_stack_operations
 	* invalid state on instruction exec
 	* exception return error
 	* unaligned addr on word or half word (if proc is cofig to report it)
-	* division by zero (if proc is cofig to report it)
+	* division by zero (if proc is config to report it)
 * SVCall: supervisor call is triggered by SVC instuction. in OS apps use SVC inst to access OS kernel funcs and dev drivers. a way fro unpriviledged app tasks to get elevetad rights from OS to use resources in a handler
 * PendSV: interrupt driven req for Sy level service. used for context switching in OS env
 * SysTick: system timer triggered when it reaches zero. also SW triggered. In OS env proc can use it as System tick
@@ -1011,4 +1011,77 @@ do_stack_operations
 
 ### Lecture 63 - ARM Cortex Mx-System Exception’s vector addresses
 
+* The Vector Table for System exceptions as we see in 'startup_stm32f446xx.s' are stored from address 0x00000004 and onwards (word aligned). address 0x00000000 is reserved for top of stack (MSP val) as we have seen
+
+### Lecture 64 - ARM Cortex Mx System Exception priority
+
+* In the context of the ARM Processor always remember that: The lowest the priority value, the highest the priority of exception, and the more urgent it is
+
+### Lecture 65 - ARM Cortex Mx System Exception Priority Contd.
+
+* All Cortex proc share same exception model as it is ARM based
+* TI TIVA CortexM4 has same. STM32F4 the same etc
+
+### Lecture 66 - ARM Cortex Mx-System Exception activation: Part 1
+
+* System Exception Configuration: Activating(Pending)/Deactivating/Changing Priority
+* we create a new project 'system_exception_activation' with an empty main
+* even if we dont enable any system exceptions, Reset,NMI and hardFault will be enabled by default
+* we will add a jump to an illegal address (NX mem region) to trigger an exception
+* we use a function pointer set to zero address
+```
+	void (*go_address) (void);
+	go_address = 0x00000000;
+	go_address();
+```
+* We get a hardFault. we can suppress it using teh FAULTMASK `__set_FAULTMASK(1);` hardfault is suppressed
+* System Exception Handlers as we can see in startup assembly file are set WEAK from cu vendor. so we can override them with our own C functions witht he sam ename
+* we override them creating empty methods in our file e.g
+```
+void HardFault_Handler(void){
+	
+}
+```
+* we will now activate these system exceptions
+* in Generic User Guide of Cortex M4 in chapter 4.3 (System control block)
+* System Control Block is a set of registers of the proc providing sytem implementation info and system control(config,control and report of system exceptions)
+* The register to use for activating exceptions is SHCSR
+
+### Lecture 67 - System Exception Activation and Exception Escalation
+
+* we will activate exceptions: MemManage, BusFault, UsageFault, SVC, PendSV
+* we will use SHCSR and the respective bits(flags) setting them to activate the exceptions.
+* there is a bit for every system exception
+* this is a MemMap register. to set the register we use a CMSIS api call. CMSIS core header file. in our case is included in 'stm32f446xx.h' and it contains macros to access the address.
+* SCB_Type struct contains the SHCSR reg
+* we will create apointer of this type `SCB_Type *pSCB;`
+* we will init it to base address of the control block
+* in the same 'core_CM4.h' there is a macro for the base address `SCB_BASE`. there are macros for all Core Hardware MemMap areas (with their regs)  'SCB' is type casted pointer of this struct type so we use it.
+* we dereference SCB to get SHCSR and set the bits to enable exceptions `SCB->SHCSR = SCB->SHCSR | (1 << 16); //enable MemManage Exception`
+* enabling an exception dos not trigger it. it will be triggered when triggering conditions happen
+* we divide by zero using a func.debug ans see the exception triggering. to see which exception handler is called we add breakpoints in all of them. noone is called. Cortex M treats division by 0 as 0 (result goes to R0 reg and we confirm it). 
+* in 4.3.7 of the manual we see that CCR (Config and Control Register) allow us to trap divizion by zero error and unalligned accesses. DIV_0_TRP (bit4) does the trick `SCB->CCR = SCB->CCR | (1 << 4);`. i see i am trapped in UsageFault Hanlder
+* if i disable ther UsageFault exception HardFault is triggered
+
+### Lecture 68 - Usage fault Exception with unaligned data access
+
+* in CCR apart from DIV_0_TRP (bit4) thre is UNALIGN_TRP (bit3) to trap in an exception unaligned word and halfword access. `SCB->CCR = SCB->CCR | (1 << 3);`
+* to trigger it we add a pointer to a RAM location and read its contents incrementing it by 2 (content is uninitialized though)
+```
+	//unaligned data access
+	uint32_t *p = (uint32_t*) 0x20000000;
+	uint32_t var = *p;
+	var++;
+```
+* in hisdissasmbly code generated no instructions (code optimizastion), we pass var in a func to force the compiler to generate assembly code
+* another way to force the compiler to generate assembly code is using 'volatile' keyword `	uint32_t volatile *p = (uint32_t*) 0x20000000;`
+* it works as we do alligned access (2000000 is multiple of 4)
+* for unaligned we mod it to `uint32_t *p = (uint32_t*) 0x20000001;` we are trapped in the UsageFault handler. SUCCESS
+* if ichange uint32_t to uint8_t it wont have any issue whatsoever
+* assy command LDR is for 33bit word , LDRH for 16b halfword, LDRB for 8bit char
+* if i dont trap unaligned using CCR no exceptions happened. Cortex M has no problem handling unaligned mem access (NOT RECOMMENDED)
+
+### Lecture 69 - NVIC,IRQ Numbers and Enabling/Disabling Interrupts
+
+**NVIC (Nested Vector Interrupt Controller)**
 * 
