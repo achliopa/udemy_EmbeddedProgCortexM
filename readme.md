@@ -1084,4 +1084,50 @@ void HardFault_Handler(void){
 ### Lecture 69 - NVIC,IRQ Numbers and Enabling/Disabling Interrupts
 
 **NVIC (Nested Vector Interrupt Controller)**
+* NVIC is one of the peripheral of the Cortex M processor core
+* it is used to configure the 240 external interrupts (external to the processor core)
+* using the NVIC registers you can Enable/Disable/Pend Various interrupts and read the status of the active and pending interrupts
+* we can configure the priority and priority grouping of various interrupts
+* it is called as "nested" because, it supports pre-empting a lower priority interrupt handler when higher priority interrupt arrives
+* in chapter 4.2 of the General User manual we can read about tthe NVIC and its registers
+
+**Enable/Disable/Pend various interrupts using NVIC regs**
+* Cortex M proc supports 240 interrupts
+* these interrupts are managed and configured using the NVIC
+* what are thise 240 interrupts?
+	* anything external to the proc core
+	* we should consult the [MCU device ref manual](https://www.st.com/content/ccc/resource/technical/document/reference_manual/4d/ed/bc/89/b5/70/40/dc/DM00135183.pdf/files/DM00135183.pdf/jcr:content/translations/en.DM00135183.pdf) at 10.2 we see that our MCU STM32F446RE supports 96 external interrupts from on chip peripherals (e.g SPI, GPIO, Timers, DMA etc)
+* NVIC module (sitting inside the COrtex M CPU) offers 240 interrupt lines to peripherals residing on the SoC. the wiring and ordering is up to the Vendor
+
+### Lecture 70 - NVIC Interrupt handling Registers (Set/Clear/Pend/Active)
+
+* NVIC offers various registers.
+	* NVIC_ISER0 to NVIC_ISER7 (8 32bit regs) (0xE000E100 - 0xE000E11C) is to Interrupt Set-Enable Registers for up to 256 interrupts in blocks of 32 irqs. We CANNOT use the reg to disable an interrupt. only to enable it (0 has no effect)
+	* NVIC_ICER0 to NVIC_ICER7 (8 32bit regs) (0xE000E180 - 0xE000E19C) is to Interrupt Clear-Enable Registers for up to 256 interrupts in blocks of 32 irqs. We CANNOT use the reg to enable an interrupt. only to disable it (0 has no effect)
+	* NVIC_ISPR0 to NVIC_ISPR7 (8 32bit regs) (0xE000E200 - 0xE000E21C) is to Interrupt Set-Pending Registers for up to 256 interrupts in blocks of 32 irqs. We CANNOT use the reg to remove an interrupt from pending state. only to force it into it (0 has no effect)
+	* NVIC_ICPR0 to NVIC_ICPR7 (8 32bit regs) (0xE000E280 - 0xE000E29C) is to Interrupt Clear-Pending Registers for up to 256 interrupts in blocks of 32 irqs. We CANNOT use the reg to force an interrupt to go on pending state. only to remove it (0 has no effect). We can read this reg to see which IRQs are pending (bits are set)
+	* NVIC_IABR0 to NVIC_ISBR7 (8 32bit regs) (0xE000E300 - 0xE000E31C) is to Interrupt Active-Bit Registers for up to 256 interrupts in blocks of 32 irqs. Wwhen read it indicates which interrupts are active (proc is executing its ISR).
+* Pending an interrupt is to use its priority level for order of execution (or halt it till higher priority isrs are finished)
+
+### Lecture 71 - Exercise-Enabling and Pending of an Interrupt
+
+* we create anew keil project 'nvic_en_dis_pend' and add main.c
+* we will manuall Enable and Pend the USART3 interrupt
+* we import HAL h file `#include "stm32f446xx.h"`
+* we add boilerplate main()
+* we see the STM32F446RE ref manual and see the USART3 is IRQ39 `#define USART3_IRQ_NUM 39`
+* we go to the h file of the core 'core_cm4.h' to see the NVIC reg structure and how to access them. 
+* in same way like the CSR we have the NVIC_Type struct we use pointers and Base address. NVIC_BASE is type casted so we can use NVIC
+```
+NVIC_Type	*pNVIC = NVIC;
+	pNVIC->ISER[1] |= (1 << 7);
+```
+* after enabling it we will pend it manually `pNVIC->ISPR[1] |= (1 << 7);`
+* from startup assembly file we chen in vector table for the USART3 Handler definition and ovverrite it as C addint endless while loop
+* we debug to test it. we see that we enter the Handler
+* PENDING an interrupt is like activating it (respecting the priorities)
+* setting the pending bit is a 4 instr (all in one) loc. the instr that sets pending and fires the ISR is `0x08000388 500A      STR           r2,[r1,r0]`
+
+### Lecture 72 - Exercise : Enabling and Pending of an Interrupt using CMSIS APIs
+
 * 
