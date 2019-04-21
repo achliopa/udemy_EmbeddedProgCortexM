@@ -14,12 +14,12 @@
 void button_init(void)
 {
 	/* Enable GPIOA clock */
-	/* because BUTTON is connected to GPIOA */
-	RCC->AHB1ENR |= 0x01;
+	/* because BUTTON is connected to GPIOC */
+	RCC->AHB1ENR |= 0x04;
 
 	//set the mode 
-	GPIOA->MODER &= ~0x3;
-	GPIOA->PUPDR  &= ~0x3;
+	GPIOA->MODER &= ~0x30000000;
+	GPIOA->PUPDR  &= ~0x3000000;
 
 	//enable clock for RCC
 	RCC->APB2ENR |= 0x00004000;
@@ -32,7 +32,8 @@ void button_init(void)
 	
 		//nvic configuration 
 	/* button is irq number 6. which is connected over EXTI0 line in stm32f4xx */
-	NVIC->IP[EXTI0_IRQn] = 0Xf0;// (low priority )
+	//NVIC->IP[EXTI0_IRQn] = 0Xf0;// (low priority )
+	NVIC->IP[EXTI0_IRQn] = 0X00;// (high priority )
 	NVIC_EnableIRQ(EXTI0_IRQn);
 	
 	
@@ -56,7 +57,8 @@ int main(void)
 	SysTick_Config(2000);//125 micro seconds
 	
 		/*configure Systick priority and enable it */
-	SCB->SHP[0x0B] = 0X00;// ( high priority)
+	//SCB->SHP[0x0B] = 0X00;// ( high priority)
+	SCB->SHP[0x0B] = 0Xf0;// ( low priority)
 	NVIC_EnableIRQ(SysTick_IRQn);
 	
 
@@ -84,9 +86,9 @@ if( (EXTI->PR & 0x01) )
 
 }
   //PD12
-	led_on(LED_4);
+	led_on(LED_2);
 	for(i=0;i<50000;i++); //do some work
-	led_off(LED_4);
+	led_off(LED_2);
 }
 
 /* SysTick Exception handler */
@@ -94,8 +96,8 @@ void SysTick_Handler(void)
 {
 	
 	//PD13
-	 led_on(LED_3);
-	 led_off(LED_3);
+	 led_on(LED_2);
+	 led_off(LED_2);
 	
 }
 

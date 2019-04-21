@@ -1219,4 +1219,62 @@ void WWDG_IRQHandler(void) {
 
 ### Lecture 76 -  Lab assignment 5 : Exception Masking/Un-masking
 
+* Demonstrating Enable/Disable Exceptions usinf PRIMASK and BASEPRI registers
+* PRIMASK disables all exceptions except RESET,NMI and HARDFAULT
+* setting the priority value for BASEPRI (bit0-7) register blocks all exceptions with priority same or lower than the programmed val
+* we create a keil project 'lab_exercise5' adding the source files from courseRepo
+* to issue the interrupt we will use the user button on our board
+* with ifdefs we control the PRIMASK (disable interrupts) and BASEPRI disasbling interups with priority num >=8
+```
+#if 0
+	 __set_PRIMASK(1);
+#endif
+	
+#if 0
+	/* 0x80 is the priority level, any interrupt which is same or lower priority will be blocked */
+	__set_BASEPRI(0X80);
+#endif
+```
+* priority was set to 0 `NVIC->IP[EXTI0_IRQn] = 0x00;` if we set it to 0x80 it wond pass
+* We should revise the exercise once we learn about GPIOs as its NOT WORKING on NUCLEO
+
+### Lecture 77 -  Lab Assignment 6 : Getting Started with USB-Logic Analyzer
+
+* we have a Saleae Logic Analyzer
+* we connect the GPIO PIN we want to monitor to CH1 (red) and GRND cable to 
+* set sampling rate and sampling duration
+* we can use markers to check duration
+
+### Lecture 78 - Lab Assignment 7 : Interrupt Priority and Pre-emption
+
+* we will demonstrate interrupt Priority snd preepmption by configuring 2 interrupts
+* we will use SysTick Timer exception and button interrupt to understand how pre-emption  works due to chaining priorities
+* Arm Cortex M3/<4 has a24-bit system timer called sysTick
+* the counter in the sysTick is 24bit decrement counter, when we star the counter by loading some value it starts decrementing for every processor clock cycle
+* if it reaches 0 it raises sysTick Timer exception, reloads the val and continues
+* it can be used for time keeping, time measuremenmt or as an interrupt source for tasks that need to be executed regularly
+* in an OS envf it can be used for context switching between tasks
+* in First case we will give SysTick Timer IRQ priority 0xF0 and to button priority 0x00 (higher)
+* so when systick timer exception handler is running, if button interrupt arrives , it will preempt the systick exception
+* we build on previous example cping code from courseRepo
+* we configure Systick timer for 2000ticks
+```
+	//2000 ticks
+	SysTick_Config(2000);//125 micro seconds (16MHz)
+```
+* internasl clock (HSI) is set to 1600000000 (16MHz) in system _stm32...c
+* we connect logic analyzer in D13 pin
+* we check the perion between interupts
+* we set priority with SHP (system handler priority) reg of SCB 
+* there are 12 such registers of 8bits, like for itnerrupts. SysTick is the 12th (0 based) so B setting it to highest val 0 `SCB->SHP[0x0B] = 0X00`
+* button has low priority `	NVIC->IP[EXTI0_IRQn] = 0Xf0;// (low priority )`
+* we swap priorities
+* in the analyzer we see that whenever there is a button press systick is preempted
+* when a higher priority isr runs it wont allow lower priority interrupt
+* if i invert priorities, systick prempts the use rbutton handler which takes morfe time (it is preempted and resumes execution once systime finishes)
+
+## Section 14 - System Exceptions and Interrupts-II
+
+### Lecture 79 - Pending Interrupt Behaviour
+
 * 
