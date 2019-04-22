@@ -1430,4 +1430,78 @@ void toggle_led(void) {
 
 ### Lecture 83 - Lab assignment 9 : Programming and Configuring External Interrupt (Buttons)-I
 
+* we will see how to configure and program external interrupts from scratch
+* we will use the NUcleo Board and its user button (GPIOC port pin 13)
+* How external interrupts are connected to the proc? thrugh the NVIC module providing NVIC lines. 15 are reserved for system. so ext interrupt 0 is exception #16
+* How external interrupts are delivered to NVIC??? 
+* PC13 which is wired to the button is NOT connected directly to NVIC but passes through a MUX that takes all PIN13 of all MCU GPIO ports and allows only 1 line called EXTI13 to go to the NVIC 
+* so only one pin among the same indexed pins of diff ports is allowed to go to NVIC to trigger an interrupt at any given time. 
+* MIXing is done in EXTx[3:0] bits in the SYSCFG_EXTICR1 register (16 lines are available for all ports)
+* line 13 is in EXTI15_10 (EXTI Line[15:10]) entry in vector table with position 40 and address 0x000000E0 in vector table. this is the address of the ISR (we overwrite the definition on s file). whatever address we pass in this location it will be called when IRQ is triggered
+* it is the responcibility of the device startup code to put the address of the ISRs in the vector table locations. USE the vendors startup code
+
+### Lecture 84 - Lab assignment 9 : Programming and Configuring External Interrupt (Buttons)-II
+
+* GPIOs are peripherals and need a clock to operate
+* Clocks are off by default to save power
+* Steps to configure the Button Interrupt
+	* Enable the Clock from the GPIO
+	* Configure the pin as input
+	* enable the interrupt for a pin and configure the Trigger (rising edge etc)
+	* Enable the interrupt in NVIC
+	* Setup the Priority (optional)
+	* Vector Table initialization
+* we start a barebone project 'lab_exercise9_interrupt' and cp the files from courseRepo
+* we mod the code for NUCLEO to reflect leds and go to main to set the button interrupt
+* enable clock
+```
+	/*1. Enable GPIOC clock */
+	/* because BUTTON is connected to GPIOC PIN13 */
+	//RCC_AHB1ENR
+	RCC->AHB1ENR |= 0X04; //Enables the clock
+```
+* set pin to input (clear bits in MODER)
+```
+	/* 2. set the mode of GPIOC pin0 to "INPUT" */
+	GPIOC->MODER &= ~0X0C000000;
+```
+* set falling edge trigger for pin13
+```
+	/*3. set the interrupt triggering level for pin13 (bit13)*/
+	//(EXTI_FTSR
+	EXTI->FTSR |= 0X2000;	
+```
+* enable the interrupt over ETXT13 line (MUX)
+```
+	/*4. enable the interrupt over EXTI13 */
+	EXTI->IMR |= 0X2000;
+```
+* enable interrupt in NVIC
+```
+/*5. ENable the interrupt on NVIC for IRQ40 */
+	NVIC->ISER[(((uint32_t)EXTI15_10_IRQn) >> 5)] = (uint32_t)(1 << (((uint32_t)EXTI15_10_IRQn) & 0x1F));
+```
+* seting ISER: NVIC supports up to 7 ISER registers to set enable interrupts
+	* NVIC_ISER0 (addr 0xE000E100) is for IRQ 0 to 31 (bit31 for IRQ31)
+	* NVIC_ISER1 (addr 0xE000E104) is for IRQ 32 to 63 (bit31 for IRQ63)
+	* ...
+* in interupt we need to clear pending bit
+```
+void EXTI0_IRQHandler(void)
+{
+	/*clear the pending bit for exti13 */
+		if( (EXTI->PR & 0x2000) )
+	{
+		EXTI->PR = 0x2000;//Writing 1 , clears the pending bit for exti13
+	
+	}
+	led_toggle(LED_2);
+	
+}
+```
+
+## Section 16 - Cortex M3/M4 OS Features
+
+### Lecture 85 - Use of shadowed stack pointer
+
 * 

@@ -1,6 +1,6 @@
 #include <stdint.h>
 #include <stdio.h>
-#include "stm32f407xx.h"
+#include "stm32f446xx.h"
 #include "led.h"
 #include "my_board.h"
 
@@ -8,27 +8,27 @@ void button_init(void);
 
 void button_init(void)
 {
-	/*1. Enable GPIOA clock */
-	/* because BUTTON is connected to GPIOA PIN0 */
+	/*1. Enable GPIOC clock */
+	/* because BUTTON is connected to GPIOC PIN13 */
 	//RCC_AHB1ENR
-	RCC->AHB1ENR |= 0X01; //Enables the clock
+	RCC->AHB1ENR |= 0x04; //Enables the clock
 	
 
-	/* 2. set the mode of GPIOA pin0 to "INPUT" */
-	GPIOA->MODER &= ~0X03;
+	/* 2. set the mode of GPIOC pin13 to "INPUT" */
+	GPIOC->MODER &= ~0x0C000000;
 
 
 	
-	/*3. set the interrupt triggering level */
+	/*3. set the interrupt triggering level for pin13 (bit13)*/
 	//(EXTI_FTSR
-	EXTI->FTSR |= 0X01;	
+	EXTI->FTSR |= 0x00002000;	
 
-	/*4. enable the interrupt over EXTI0 */
-	EXTI->IMR |= 0X01;
+	/*4. enable the interrupt over EXTI13 */
+	EXTI->IMR |= 0x00002000;
 
 
-	/*5. the interrupt on NVIC for IRQ6 */
-  NVIC->ISER[0] |= ( 1 << EXTI0_IRQn);
+	/*5. ENable the interrupt on NVIC for IRQ40 */
+	NVIC->ISER[1] |= (1 << (EXTI15_10_IRQn - 32));
 	
 }
 
@@ -39,10 +39,7 @@ int main()
 	
 	button_init();
 	
-	led_on(LED_4);
-	led_on(LED_3);
-	led_on(LED_5);
-	led_on(LED_6);
+	led_on(LED_2);
 	
 	/*infinite loop */
 	while(1)
@@ -55,12 +52,12 @@ int main()
 
 void EXTI0_IRQHandler(void)
 {
-	/*clear the pending bit for exti0 */
-		if( (EXTI->PR & 0x01) )
+	/*clear the pending bit for exti13 */
+		if( (EXTI->PR & 0x00002000) )
 	{
-		EXTI->PR = 0x01;//Writing 1 , clears the pending bit for exti0
+		EXTI->PR = 0x00002000;//Writing 1 , clears the pending bit for exti13
 	
 	}
-	led_toggle(LED_4);
+	led_toggle(LED_2);
 	
 }

@@ -1,5 +1,6 @@
 #ifndef __LED_H_
 #define __LED_H_
+#include <stdint.h>
 
 void led_init(void);	
 void led_on(uint8_t led_no);
