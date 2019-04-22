@@ -1504,4 +1504,109 @@ void EXTI0_IRQHandler(void)
 
 ### Lecture 85 - Use of shadowed stack pointer
 
-* 
+* Important concepts to grasp: 
+	* the use of shadowed stack pointer in OS
+	* SVC exception and its uses
+	* PendSV Exception and its uses
+* How Cortex M3/M4 Helps OS?
+	* Shadowed stack pointer
+	* SysTick Timer
+	* SVC and PendSV exceptions
+* Shadowed Stack Pointer
+	* Physically 2 stack pointers are there for M3/M4 (MSP,PSP)
+	* The SP(R13), which is called stack pointer points to the currently selected stack pointer
+	* Value of SPSEL bit in CONTROL reg determines which stack is currently active and used in Thread mode
+* How OS Benefits from SHadowed Stack Pointers
+	* In SRAM Kernel has allocated different regions for different tasks stacks
+	* When kernel runs it uses MSP to track its stack space (kernel stack space)
+	* When kernel scheduler makes Task A to run, it changes the proc stack selection to PSP and loads the Task A's previous stack pointer to PSP to make task A resume from where it was left before
+	* The kernel should keep track of all the tasks stack pointer values and load it appropriately into PSP when it schedules a particulat task to run
+	* this prevents a task to corrupt the kernel stack
+
+### Lecture 86 - SVC System Exception
+
+* SVC stands for Supervisory Call.
+* This is Triggered by SVC instruction
+* Once we execute this instruction, the svc handler will execute right after the svc instruction(no delay!!!unless a higher priority exception arrive at the same time)
+* Advantages of SVC exception:
+* Case of Priviledged System Resource Access by the application. (Kernel => Driver Interface => HW(Priviledged Resource))
+	* The App Task says "I want to use the Priviledged HW" 
+	* Kernel says "What you want to do?"
+	* Say the App wants to open the HW and send some data
+	* Kernel says "Issue SVC with service number 4" and i will do it for you
+* Kernel will not allow any application to directly open the HW, the application has to ask the service using the SVC instruction with the appropriate service number
+* Case of Application Portability (Kernel_v2 => Driver_V2 => Hardware_V2(priviledged))
+	* Application_v1 asks "Do I need to change my code to open the HW?"
+	* Kernel_v2 replies "No, still you can use SVC 0x04"
+* SVC allows apps to be developed independently from OS
+* Method to Trigger SVC Exception (2 ways)
+	* Direct execution of svc instruction with an immediate value: e.g SVC 0x04 in assembly issued in a C program (very efficient in latency)
+	* Set the exception pending bit "System Handler COntrol and State Register (SHCSR)". This method is not recommended and there is no reason to use it
+* How to extract the SVC Number
+	* when svc instruction is executed, the associated immediate value(Service Number) will not be passed to SVC Exception Handler
+	* The SVC Handler needs to extract the number by using the PC value which was stored on to the stack, prior coming to exception handler!
+* Example:
+	* we have Task A running in Thread mode
+	* Task issues SVC instruction
+	* proc stacks automatically the usual stack frame (Assuming FPU is disabled)
+	* SVC exception handler is executed
+	* in the handler: the handler must determine which SP was used for stacking operations when SVC exception occured (read LR in stack which has the EXC_RETURN). get the value of PC, because PC holds the address of the instruction after SVC instruction (the address next to the svc instruction). if i increment MSP by 6 i go to PC in the stack frame
+```
+Next_ins_addr_after_svc = MSP[6]
+SVC_number = *((Next_ins_addr_after_svc)-2) //this gives the address where svc instruction is stored in the code memory
+```
+* we do this because SVC num is not passed in the handler
+
+### Lecture 87 - PendSV System Exception-I
+
+* In OS designes, we need to switch between different tasks to support multitasking. THis is typically called context switching
+* Context switching is usually carried out in the PendSV exception handler
+* It is exception type 14 and has a programmable priority level
+* it is basically set to lowest priority possible
+* This exception is triggered by setting its pending status by writing to the "Interrupt Control and State Register ICSR of NVIC"
+* Typical use of PendSV:
+	* Typically this exception is triggered inside a higher priority exception handler and it gets executed when the trigger priority handler finishes
+	* Using this characteristic we can schedule the PendSV exception handler to be executed after all the other interrupt processing tasks are done
+	* This is very useful for a context switching operation, which is a key operation in various OS design
+* Context switching:
+	* OS code runs on each systick timer exception and decides to schedule(switch to) different task (Context Switch)
+* PendSV in Context Switching:
+	* In typical embedded OS design, the context switching operation is carried out inside the PendSV exception handler
+	* Using PendSV in context switching will be more efficient in a interrupt noisy environment
+	* IN such an env we need to to delay the context switching untill all IRQ are executed
+	* PendSV delays the context switching untill processor is free from other exceptions
+	* If OS decides context status is needed it sets the pending status of the PendSV and carries out the context switching within the PendSV exception
+
+### Lecture 88 - PendSV System Exception-II (Understanding with animation) 
+
+* we have a Task Running in thread mode. while it executes SysTick Timer Timesout (Exception)
+* control is given to the OS running in the Systick Handler
+* OS wants to do context switch. it pends the pendSV
+* there are no other higher priority interrupts in system
+* after systick handler finishes control is given to pendSV handler
+* context switching is done in the handler
+* after PendSV handler exits TaskB executes in thread mode
+* Why COntext Switching is done in pendSV handler and not in Systick imer handler?
+* while TaskB runs an interrupt occurs
+* control is handled over its ISR
+* while its executing systick times out!
+* systick premts the interrupt ISR and takes over
+* we have a half serviced ISR pre-empted.
+* if the OS task running in Systick handler wants to context switch from the SYsTick handler and return to thread mode then processor will raise HELL (UsageFault Exception) as we cannot return to thread mode leaving a pre-empted ISR pending
+* doing context switch from pendSV (lowest priority) ensures there will never be an ISR pending when returning to thread mode
+* Offloading Interrupt PRocessing using PendSV
+	* If a higher priority handlers doing time consuming work, then the other lower priority interrupts will suffer and systems responsivenenss may reduce 
+	* Typically Interrupts are serviced in 2 halves: the first is the time critical part that needs to be executed as part of ISR, the second half is called 'bottom half' is basically delayed execution where rest of the time consuming work will be done
+* So PendSV can be used in these cases, to handle the second half execution by triggering it in the first half
+
+## Section 17 - LAB SESSION
+
+### Lecture 89 - Lab assignment 10 :SVC Exception and Handler implementation
+
+* Write a C program to do arithmetic operation between 2 values by executing SVC instruction.
+	* Use the svc service number to decide which operation needs to be carried out as per below table
+	* Do the operation in SVC handler and return the result
+	* SVC num 0x36 : Addition
+	* SVC num 0x37 : Multiplication
+
+### Lecture 90 - Lab assignment 11 : PendSV in offloading interrupt processing
