@@ -29,6 +29,7 @@ void led_off(uint8_t led_no)
 
 void led_toggle(uint8_t led_no)
 {
+	uint32_t i=0;
 	if(GPIOA->ODR & (1 << led_no) )
 	{
 		led_off(led_no);

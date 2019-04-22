@@ -6,26 +6,28 @@
 
 void button_init(void)
 {
-	/* Enable GPIOA clock */
-	/* because BUTTON is connected to GPIOA */
-	RCC->AHB1ENR |= 0x01;
+	/*1. Enable GPIOC clock */
+	/* because BUTTON is connected to GPIOC PIN13 */
+	//RCC_AHB1ENR
+	RCC->AHB1ENR |= 0x04; //Enables the clock
+	
 
-	//set the mode 
-	GPIOA->MODER &= ~0x3;
-	GPIOA->PUPDR  &= ~0x3;
+	/* 2. set the mode of GPIOC pin13 to "INPUT" */
+	GPIOC->MODER &= ~0x0C000000;
 
-	//enable clock for RCC
-	RCC->APB2ENR |= 0x00004000;
 
-	//configure the interrupt 
-	EXTI->IMR |= 0x01;
-	//	EXTI->RTSR |= 0X01;
-	EXTI->FTSR |= 0X01;
+	
+	/*3. set the interrupt triggering level for pin13 (bit13)*/
+	//(EXTI_FTSR
+	EXTI->FTSR |= 0x00002000;	
 
-	//nvic configuration 
-	NVIC->IP[EXTI0_IRQn] = 0x00;
-	NVIC_EnableIRQ(EXTI0_IRQn);
+	/*4. enable the interrupt over EXTI13 */
+	EXTI->IMR |= 0x00002000;
 
+
+	/*5. ENable the interrupt on NVIC for IRQ40 */
+	NVIC->ISER[1] |= (1 << (EXTI15_10_IRQn - 32));
+	
 }
 
 /**
@@ -48,15 +50,15 @@ int main(void)
 }
 
 /* ISR for the button interrupt */
-void EXTI0_IRQHandler(void)
+void EXTI15_10_IRQHandler(void)
 {
-	/* clear EXTI0 pending bit */
-	if( (EXTI->PR & 0x01) )
+	/*clear the pending bit for exti13 */
+		if( (EXTI->PR & 0x00002000) )
 	{
-		EXTI->PR = 0x01;
+		EXTI->PR = 0x00002000;//Writing 1 , clears the pending bit for exti13
+	
 	}
-
-	led_toggle(LED_4);
+	led_toggle(LED_2);
 	/*process only which is important and trigger the pendsv to 
 	handle rest in the pendsv handler  */
 	SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
@@ -67,7 +69,7 @@ void EXTI0_IRQHandler(void)
 void PendSV_Handler(void)
 {
 		// bottom half work can be done here. 
-	 led_toggle(LED_3);
+	 led_toggle2(LED_2);
 }
 
 

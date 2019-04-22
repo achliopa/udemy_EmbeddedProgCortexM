@@ -4,8 +4,6 @@
 #include "led.h"
 #include "my_board.h"
 
-void button_init(void);
-
 void button_init(void)
 {
 	/*1. Enable GPIOC clock */
@@ -50,7 +48,7 @@ int main()
 	return 0;
 }
 
-void EXTI0_IRQHandler(void)
+void EXTI15_10_IRQHandler(void)
 {
 	/*clear the pending bit for exti13 */
 		if( (EXTI->PR & 0x00002000) )

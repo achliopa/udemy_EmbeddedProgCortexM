@@ -1608,5 +1608,14 @@ SVC_number = *((Next_ins_addr_after_svc)-2) //this gives the address where svc i
 	* Do the operation in SVC handler and return the result
 	* SVC num 0x36 : Addition
 	* SVC num 0x37 : Multiplication
+* project 'lab_exercise10_svc_except' has the answer and the code
 
-### Lecture 90 - Lab assignment 11 : PendSV in offloading interrupt processing
+### Lecture 90 - Lab assignment 11 : PendSV in off
+
+* Demonstrating Usage of PendSV to offload the Interrupt Processing
+* we cp the interrupt lab exercise and add the pendSV pending from the Push button ext irq handler
+```
+	/*process only which is important and trigger the pendsv to 
+	handle rest in the pendsv handler  */
+	SCB->ICSR |= SCB_ICSR_PENDSVSET_Msk;
+```
