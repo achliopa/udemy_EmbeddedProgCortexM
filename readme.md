@@ -1277,4 +1277,157 @@ void WWDG_IRQHandler(void) {
 
 ### Lecture 79 - Pending Interrupt Behaviour
 
+* Case 1: Single Pended Interrupt
+	* Proc in Thread mode
+	* Interrupt asserted from peripheral (lo->hi)
+	* Pending Bit for asserted IRQn is Set
+	* Proc changes mode from Thread to Handler (stacking & vector fetch)
+	* When proc executes the ISR Interrupt Active bit for IRQn is Set. Pending bit is cleared
+* Programmer makes sure that system wont receive any other interrupt till ISR is finished
+	* Proc finishes ISR and exits
+	* Interrupt active bit is cleared
+	* Proc unstacks and changes from Handler to Thread mode
+* Case 2: Double Pended interrupt
+	* Proc in Thread mode
+	* Interrupt asserted from peripheral (lo->hi)
+	* Pending Bit for asserted IRQn is Set
+	* Proc changes mode from Thread to Handler (stacking & vector fetch)
+	* Proc executes the ISR Interrupt Active bit for IRQn is Set. Pending bit is cleared
+	* a new interrupt (same) is asserted
+	* pending bit is set
+	* once ISR exits proc goes to thread mode to serve the 2nd interrupt
+
+### Lecture 80 - Exception Entry and Exit Sequence
+
+* every time there is an exception (Exception ENtry Seqyebnce)
+	* pending bit is set
+	* stacking and vector fetch (push register conent to stack, fetch the address of ISR from vector table)
+	* proc entry into handler and active bit is set
+	* proc clears the pending status (automatically)
+	* proc goest in handler mode
+	* isr code gets executed
+	* MSP will be used for stack operation in the handler
+* Exception Exit Sequence
+	* in Cortex M3/M4 procs the exception return mechanism is tiggered using a special return address called EXC_RETURN
+	* EXC_RETURN is generated during exception entry and is stored in the LR reg
+	* When EXC_RETURN is written to PC it triggers ther exception return
+* Example:
+	* Proc is running in thtread mode with PSP stack pointer
+	* Exception is asserted
+	* Proc is stacking with PSP and vector fetch, LR is loaded with EXC_RETURN val (0xFFFFFFFD)
+	* Proc executes ISR in handler mode 
+	* Proc wants to do exception return 
+	* Exception return kicks in once LR val is copied back to PC
+	* It does unstacking with PSP
+	* Returns to threa dmode
+* When EXC_RETURN is generated? Durng an exception handler entry, the value of the return address (PC) is not stored in the LR as it is done during function call. Instead the exception mech stores the Special value called EXC_REURN in LR
+* Decoding the EXC_RETURN val
+	* bit0 		: reserved 				: 1
+	* bit1 		: reserved 				: 0
+	* bit2 		: return stack  		: 1=return with PSP, 0=return with MSP
+	* bit3 		: return mode 			: 1=return to thread mode, 0= return to handler mode
+	* bit4 		: stack frame type 		: always 1 when floating point unit is not available
+	* bit5-27	: reserved (all 1)		: 0xEFFFFF
+	* bit28-31	: EXC_RETURN indicator 	: 0xF
+
+### Lecture 81 - Exception Entry and Exit Sequences : Demonstration
+
+*  we create anew keil project 'exception_entry_exit_seq' merging code from 'blinky' and 'operation_modes'
+* we are simulating WWG IRQ and use it to turn on some leds
+* in main we pend the wdog to turn off the led
+* code
+```
+#include <stdint.h>
+#include "Board_LED.h"
+#include "stm32f446xx.h"
+
+// we have to implement the watchdog interrupt handler
+void WWDG_IRQHandler(void) {
+	LED_Off(0);
+}
+
+void delay(void) {
+	uint32_t i = 0;
+	for(i=0;i<100000;i++);
+}
+
+int main(void) {
+	LED_Initialize();
+
+	while(1){
+		LED_On(0);
+		
+		//Enable and Pend the Watchdog Interrupt here
+		NVIC_EnableIRQ(WWDG_IRQn);
+		NVIC_SetPendingIRQ(WWDG_IRQn);
+		
+		delay();
+		
+		LED_On(0);
+		
+		delay();
+	}
+	return 0;
+}
+```
+* when irq triggers proc pushes regs into the stack
+* we will analayze stack contents at exception entry. starting from MSP we expect to see in memory
+	* R0 => R1 => R2 => R3 => R12 => LR => PC => xPSR => Last item before entry
+	* To verify it we need to disale the FPU as it will add more registers in stack frame (Target Options => Floating Point HW: Not USed)
+* Stack first decreases and then pushes
+* After stacking Proc contains EXC_RETURN val
+* in exception return EXC_RETURN is used
+* When EXC_RETURN is written to PC it triggers the return
+* on exit we check the STACK POINTER and the pop instruction which puts into PC the Return
+* proc decodes EXC_RETURN to see the conditions of return (mode et al)
+* then unstacking happens
+* in main we change the Stack pointer to PSP
+```
+	// change the stack pointer to PSP
+	uint32_t value = __get_CONTROL();
+	value |= (1<<1);
+	__set_CONTROL(value);
+```
+* we put PSP to end of SRAM1 (SRAM2_BASE) `__set_PSP(SRAM2_BASE);`
+* EXC_RETURN reflects the change
+
+## Section 15 - LAB SESSION
+
+### Lecture 82 - Lab Assignment 8: Programming and Configuring LED using Registers
+
+* we will learn to turn on and off LEDs from scratch using Registers
+* we will use Nucleo Board. we check schematic and see that the only User Led is connected to PortA pin 5
+* Steps to COnfigure LEDs
+	* Enable the CLock for the GPIO Port where LED is connected (In our case is GPIOA). Peripheral Clocks are disabled by default to save power
+	* Make Sure that the GPIO PIN which drives the LED is configured as Output Mode
+* We start a barebone project in keil (no bsp)
+* in MCU Ref Manual we go to RCC (Reset and Clock Control)
+* this module controls the system clock among others
+* we go to 6.3.10 'RCC AHB1 peripheral clock enable register (RCC_AHB1ENR)'
+* this is a register responsible for enabling clocks of all peripherals connected to AHB1 bus (we confirm GPIOA is connected to this bus)
+* we verify that bit0 is 'GPIOAEN' IO port A clock enable. we need to set it
+* we dont know RCC_AHB1ENR exact address but its address offset is 0x30 `#define RCC_AHB1ENR_OFFSET 0x30` the offset is from RCC_BASE address (sec 2.2.2 of RefMan) which is 0x40023800 - 0x40023BFF `#define RCC_BASE_ADDR 0x40023800`
+* we define amacro for address `#define RCC_AHB1ENR_ADDR *((volatile unsigned long *)(RCC_BASE_ADDR+RCC_AHB1ENR_OFFSET))`
+* the resaon to use volatile keyword with mem address. it forces compiler to read from mem address instead of reading a copy of the data (in proc reg)
+* to change the mode of the GPIO pin we need the 'GPIO port mode register (GPIOx_MODER) (x = A..H)' of GPIO registers (7.4.1)
+* for each pin 2 bits are used to configure
+* we see the reg offset `#define GPIOA_MODER_OFFSET	0x00`
+* we need to find GPIOA base addr (from MEm Map we see it has range 0x40020000 - 0x400203FF) `#define GPIOA_BASE_ADDR			0x40020000`
+* we add the macro for the address `#define GPIOA_MODER_ADDR		*((volatile unsigned long *)(GPIOA_BASE_ADDR+GPIOA_MODER_OFFSET))`
+* we use 'GPIO port output data register (GPIOx_ODR) ' to write to the output 1
+* we compile and test. GREAT!
+* To toggle the LED we need to read the GPIO pin state using the 'GPIO port input data register (GPIOx_IDR)' offest 0x10 and depending on state clear the bit or set the bit in ODR reg
+```
+void toggle_led(void) {
+	if(GPIOA_IDR_ADDR & (1<<5)) {
+		GPIOA_ODR_ADDR &= ~(1 << 5);
+	} else {
+		GPIOA_ODR_ADDR |= (1 << 5);
+	}
+}
+```
+* i test in a while loop with delay
+
+### Lecture 83 - Lab assignment 9 : Programming and Configuring External Interrupt (Buttons)-I
+
 * 
