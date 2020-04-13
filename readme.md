@@ -1,7 +1,7 @@
 # Udemy Course: Embedded Systems Programming on ARM Cortex-M3/M4 Processor
 
 * [Course Link](https://www.udemy.com/embedded-system-programming-on-arm-cortex-m3m4/)
-* [Course Repo]()
+* [Course Repo](https://github.com/niekiran/CortexMxProgramming)
 
 ## Section 1 - Introduction
 
@@ -93,7 +93,7 @@
 	* arduino hat compatible
 	* nucleo boards have stm32 nucleo support
 	* when we connect it to pc it is enumerated as a virtual com port
-* to enable virtual com stlink connectivity in discovery board we need to configure it and use a UART to USB adapter
+* to enable virtual com stlink connectivity in discovery board we need to configure it (ST-LINK/V2-A VCP config) and use a UART to USB adapter
 
 ### Lecture 10 - ST-Link Driver Installation
 
@@ -105,8 +105,8 @@
 sudo apt-get install libusb-1.0
 sudo apt-get install libc6:i386 lib32ncurses5
 ```
-* in woin we download and install prior to connecting the device
-* connect device and go: Control Panel => Device Manager => COM Ports to verify the COM port it is listening to
+* in win we download and install prior to connecting the device
+* connect device and go: Control Panel => Device Manager => COM Ports to verify the COM port it is listening to (it appears as STLink Dongle)
 * IDE uses this port and we can use this port to communicate the device through terminal
 
 ### Lecture 11 - ST Link Firmware Upgrade
@@ -114,7 +114,7 @@ sudo apt-get install libc6:i386 lib32ncurses5
 * in the board page in ST we download firmware upgrade
 * we use the version for the platform we use  (follow the readme file)
 * ST-LINK/V2-1 is same as ST-LINK/V2-A
-* we upgrade our firmware 
+* we upgrade our firmware (open in update mode -> upgrade)
 
 ## Section 2 - OpenSTM32 System Workbench Installation
 
@@ -161,7 +161,7 @@ sudo apt-get install libc6:i386 lib32ncurses5
 * after IDE installation we need to install BSPs for the board we use and the pack of the MCU
 * a dev board package contains all. example code, datasheets bsp, hal for mcu, drivers
 * in kEIL uVision IDE we click 'Pack Installer'
-* In opens a window with a list of manufacturers and thier products grouped in families
+* In opens a window with a list of manufacturers and their products grouped in families
 * Devices is for MCUs, Boards is for DevBoards
 * we locate our board. on right we have the avialable SW components
 	* DFP is device firmware package. it contans all needed (code, firmware drivers). we need to install this
@@ -184,7 +184,7 @@ sudo apt-get install libc6:i386 lib32ncurses5
 * keil asks us to spec the MCU used. we select STM32F446RE
 * we are shown the Manage Runtime-Env Environment window
 	* we select our board (NUCLEO-F446RE)
-	* in 'Device' we click Startup to get a stertup code. that  gives a warning as it requires an additional package CMSIS CORE to be installed
+	* in 'Device' we click Startup to get a startup code. that  gives a warning as it requires an additional package CMSIS CORE to be installed
 	* We install CMSIS CORE either clicking resolve or CMSIS => Core
 	* we click OK
 * a project is created. it contains:
@@ -661,7 +661,7 @@ main();
 	* All CortexM processors have 32bit mem addressing (4GB of addressable mem space)
 	* The memory is one unified space which is shared by code space, data space and peripheral space
 	* Proc uses Harvard bus architecture. It means concurrent instruction and data accesses using multiple bus interfaces. It can simultaneously fetch data and instruction
-	* Support for little endian and big endian memory systems (config register)
+	* Support for little endian and big endian memory systems (config register) default is little endianess
 	* Support for unaligned data transfers
 	* Bit addressable memory spaces(bit-banding)
 	* MPU (Mem Protection Unit) support (optional)

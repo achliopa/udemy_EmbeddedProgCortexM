@@ -1,0 +1,78 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000         ;This code only extracts MSP Or PSP value into RO BY tes
+                       ting LR register */ 
+    2 00000000                 EXPORT           SVC_Handler
+    3 00000000                 AREA             SVC_Area, CODE, READONLY
+    4 00000000                 IMPORT           SVC_Handler_C ; This is the SVC
+                                                             exception handler 
+                                                            
+    5 00000000         SVC_Handler
+    6 00000000 F01E 0F04       TST              LR,#4       ; Check the LR bit 
+                                                            position 2 , to tes
+                                                            t which Stack point
+                                                            er was in use 
+    7 00000004         ;during stacking operation 
+    8 00000004 BF0C            ITE              EQ
+    9 00000006 F3EF 8008       MRSEQ            R0,MSP      ; if LR bit2 is 0, 
+                                                            then copy MSP to RO
+                                                            
+   10 0000000A F3EF 8009       MRSNE            R0,PSP      ; if LR bit2 is 1 ,
+                                                             then copy PSP TO R
+                                                            0
+   11 0000000E         
+   12 0000000E F7FF BFFE       B                SVC_Handler_C ; Call C function
+                                                             for further proces
+                                                            sing 
+   13 00000012                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp --apcs=int
+erwork --depend=.\objects\svc_handler.d -o.\objects\svc_handler.o -I.\RTE\_Targ
+et_1 -IC:\Users\achliopa\workspace\tools\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\CMSI
+S\Core\Include -IC:\Users\achliopa\workspace\tools\Keil_v5\Arm\Packs\Keil\STM32
+F4xx_DFP\2.13.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include --predefine="__EVAL S
+ETA 1" --predefine="__UVISION_VERSION SETA 527" --predefine="_RTE_ SETA 1" --pr
+edefine="STM32F446xx SETA 1" --list=.\listings\svc_handler.lst "..\..\..\course
+Repo\Section 17_ (80) SVC exception\svc_handler.s"
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+SVC_Area 00000000
+
+Symbol: SVC_Area
+   Definitions
+      At line 3 in file ..\..\..\courseRepo\Section
+   Uses
+      None
+Comment: SVC_Area unused
+SVC_Handler 00000000
+
+Symbol: SVC_Handler
+   Definitions
+      At line 5 in file ..\..\..\courseRepo\Section
+   Uses
+      At line 2 in file ..\..\..\courseRepo\Section
+Comment: SVC_Handler used once
+2 symbols
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+External symbols
+
+SVC_Handler_C 00000000
+
+Symbol: SVC_Handler_C
+   Definitions
+      At line 4 in file ..\..\..\courseRepo\Section
+   Uses
+      At line 12 in file ..\..\..\courseRepo\Section
+Comment: SVC_Handler_C used once
+1 symbol
+338 symbols in table

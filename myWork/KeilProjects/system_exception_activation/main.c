@@ -40,8 +40,8 @@ int main(void) {
 	/* lets enable UNALIGN_TRP bit in CCR */
 	SCB->CCR = SCB->CCR | (1 << 3);
 	//unaligned data access
-	uint32_t *p = (uint32_t*) 0x20000001;
-	uint32_t var = *p;
+	uint32_t volatile *p = (uint32_t*) 0x20000001;
+	uint32_t volatile var = *p;
 	var++;
 	
 	/* lets divide by zero to trigger UsageFault */

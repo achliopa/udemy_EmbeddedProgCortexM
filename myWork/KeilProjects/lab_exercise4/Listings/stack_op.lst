@@ -1,0 +1,60 @@
+
+
+
+ARM Macro Assembler    Page 1 
+
+
+    1 00000000                 AREA             STACK_OP, CODE, READONLY
+    2 00000000                 EXPORT           do_stack_operations
+    3 00000000         do_stack_operations
+    4 00000000 F04F 0011       MOV              R0,#0x11
+    5 00000004 F04F 0122       MOV              R1,#0X22
+    6 00000008 F04F 0233       MOV              R2,#0X33
+    7 0000000C B407            PUSH             {R0-R2}     ; PUSH the contents
+                                                             of RO,R1,R2
+    8 0000000E F3EF 8014       MRS              R0,CONTROL  ; Read the Contents
+                                                             of CONTROL registe
+                                                            r
+    9 00000012 F040 0002       ORR              R0,R0,#0X02 ; set the SPSEL bit
+                                                             to 1, to select PS
+                                                            P
+   10 00000016 F380 8814       MSR              CONTROL,R0  ; Write back to the
+                                                             CONTROL register 
+   11 0000001A F3EF 8008       MRS              R0,MSP
+   12 0000001E F380 8809       MSR              PSP,R0      ; Initialize the PS
+                                                            P
+   13 00000022 BC07            POP              {R0-R2}     ; POP back 
+   14 00000024         
+   15 00000024 4770            BX               lr          ; Return.
+   16 00000026                 END
+Command Line: --debug --xref --diag_suppress=9931 --cpu=Cortex-M4.fp --apcs=int
+erwork --depend=.\objects\stack_op.d -o.\objects\stack_op.o -I.\RTE\_Target_1 -
+IC:\Users\achliopa\workspace\tools\Keil_v5\Arm\Packs\ARM\CMSIS\5.5.1\CMSIS\Core
+\Include -IC:\Users\achliopa\workspace\tools\Keil_v5\Arm\Packs\Keil\STM32F4xx_D
+FP\2.13.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include --predefine="__EVAL SETA 1"
+ --predefine="__UVISION_VERSION SETA 527" --predefine="_RTE_ SETA 1" --predefin
+e="STM32F446xx SETA 1" --list=.\listings\stack_op.lst stack_op.s
+
+
+
+ARM Macro Assembler    Page 1 Alphabetic symbol ordering
+Relocatable symbols
+
+STACK_OP 00000000
+
+Symbol: STACK_OP
+   Definitions
+      At line 1 in file stack_op.s
+   Uses
+      None
+Comment: STACK_OP unused
+do_stack_operations 00000000
+
+Symbol: do_stack_operations
+   Definitions
+      At line 3 in file stack_op.s
+   Uses
+      At line 2 in file stack_op.s
+Comment: do_stack_operations used once
+2 symbols
+337 symbols in table
